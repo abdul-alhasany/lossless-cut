@@ -50,7 +50,11 @@ export default ({ detectedFps, timecodeFormat }: {
       ? formatDuration({ seconds, fps: detectedFps })
       : formatDuration({ seconds });
 
-    return `${timeStr} (${frameCount ?? '0'})`;
+    // return `${timeStr} (${frameCount ?? '0'})`;
+    return {
+      time: timeStr,
+      frames: frameCount ?? 0,
+    };
   }, [detectedFps, timecodeFormat, getFrameCount]);
 
   return {

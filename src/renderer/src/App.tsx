@@ -2714,6 +2714,7 @@ function App() {
                     goToTimecode={goToTimecode}
                     darkMode={darkMode}
                     detectedFps={detectedFps}
+                    filePath={filePath}
                   />
 
                   <BottomBar
@@ -2827,6 +2828,7 @@ function App() {
                   <DialogContent
                     title={t('Settings')}
                     onCloseClick={toggleSettings}
+                    style={{ width: 800 }}
                   >
                     <Settings
                       onTunerRequested={onTunerRequested}

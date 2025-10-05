@@ -10,7 +10,7 @@ import BetweenSegments from './BetweenSegments';
 import useContextMenu from './hooks/useContextMenu';
 import useUserSettings from './hooks/useUserSettings';
 import styles from './Timeline.module.css';
-
+import { DialogContent, Dialog as CustomDialog } from './components/CustomDialog';
 
 import { timelineBackground, darkModeTransition } from './colors';
 import { Frame } from './ffmpeg';
@@ -18,6 +18,7 @@ import { FormatTimecode, InverseCutSegment, OverviewWaveform, RenderableWaveform
 import Button from './components/Button';
 import useTimecode from './hooks/useTimecode';
 import useUserSettingsRoot from './hooks/useUserSettingsRoot';
+import CustomTextInput from './components/CustomTextInput';
 
 type CalculateTimelinePercent = (time: number) => string | undefined;
 
@@ -80,6 +81,36 @@ const CommandedTime = memo(({ commandedTimePercent }: { commandedTimePercent: st
   );
 });
 
+const SeekTimeline = function ({
+  open,
+  setIsSeekTimelineOpen,
+  filePath,
+  formatTimecode,
+  commandedTimeRef,
+}: {
+    open: boolean,
+    setIsSeekTimelineOpen: (a: boolean) => void,
+    filePath: string | undefined,
+    formatTimecode: FormatTimecode,
+    commandedTimeRef: MutableRefObject<number>
+    }) {
+  const { t } = useTranslation();
+  if (!filePath) {
+    return null;
+  }
+
+  return (
+    <CustomDialog open={open}>
+      <DialogContent
+        onCloseClick={() => setIsSeekTimelineOpen(false)}
+        title={t('Seek to timecode')}
+      >
+        {t('Use + and - for relative seek')}
+        <CustomTextInput defaultValue={formatTimecode({ seconds: commandedTimeRef.current })} />
+      </DialogContent>
+    </CustomDialog>
+  );
+};
 const timelineHeight = 36;
 
 const timeWrapperStyle: CSSProperties = { height: timelineHeight };
@@ -118,6 +149,7 @@ function Timeline({
   goToTimecode,
   darkMode,
   detectedFps,
+  filePath,
 } : {
   fileDurationNonZero: number,
   startTimeOffset: number,
@@ -132,7 +164,7 @@ function Timeline({
   currentSegIndexSafe: number,
   inverseCutSegments: InverseCutSegment[],
   formatTimecode: FormatTimecode,
-  formatTimeAndFrames: (a: number) => string,
+  formatTimeAndFrames: (a: number) => {time: string, frames: number},
   waveforms: WaveformSlice[],
   overviewWaveform: OverviewWaveform | undefined,
   shouldShowWaveform: boolean,
@@ -151,12 +183,13 @@ function Timeline({
   commandedTimeRef: MutableRefObject<number>,
   goToTimecode: () => void,
   darkMode: boolean,
-  detectedFps: number,
+  detectedFps: number | undefined,
+  filePath: string | undefined,
 }) {
   const { t } = useTranslation();
 
   const { invertCutSegments } = useUserSettings();
-
+  const [isSeekTimelineOpen, setIsSeekTimelineOpen] = useState(false);
   const timelineScrollerRef = useRef<HTMLDivElement>(null);
   const timelineScrollerSkipEventRef = useRef<boolean>(false);
   const timelineScrollerSkipEventDebounce = useRef<() => void>();
@@ -211,13 +244,14 @@ function Timeline({
       return ticks;
     }
 
+    const detectedFpsNonZero = detectedFps || 30;
     for (let i = 0; i <= frames; i += 1) {
       const time = (i / frames) * fileDurationNonZero;
       const percentage = calculateTimelinePercent(time);
 
       // Make every detectedFps tick longer than others
-      const frameDuration = 1 / detectedFps;
-      const isMajorTick = (Math.abs((time / frameDuration) % detectedFps) < 1);
+      const frameDuration = 1 / detectedFpsNonZero;
+      const isMajorTick = (Math.abs((time / frameDuration) % detectedFpsNonZero) < 1);
       let tickHeight = isMajorTick ? '40%' : '20%';
 
       // make every other tick a bit longer too
@@ -360,7 +394,7 @@ function Timeline({
     window.addEventListener('mousemove', onMouseMove);
   }, [getMouseTimelinePos, handleScrub, seekAbs]);
 
-  const timeRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLInputElement>(null);
 
   const onMouseMove = useCallback<MouseEventHandler<HTMLDivElement>>((e) => {
     // need to manually check, because we cannot use css :hover when pointer-events: none
@@ -388,18 +422,32 @@ function Timeline({
     onGenerateOverviewWaveformClick();
   }, [onGenerateOverviewWaveformClick]);
 
+  const { time: timeFormat, frames: frameFormat } = formatTimeAndFrames(displayTime);
   return (
     <div style={{ display: 'flex', borderTop: '1px solid var(--gray-7)', borderBottom: '1px solid var(--gray-7)', gap: 10, backgroundColor: 'var(--gray-1)' }}>
       <div style={{
-        width: 150,
+        width: 200,
         display: 'flex',
         flexDirection: 'column',
         borderInlineEnd: '1px solid var(--gray-7)',
         backgroundColor: 'var(--gray-6)',
+        padding: '0 10px',
+        fontSize: 12,
       }}
       >
-        <div style={{ height: timelineHeight, display: 'flex', alignItems: 'center' }}>
-          Timeline
+        <div style={{ height: timelineHeight, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <SeekTimeline open={isSeekTimelineOpen} setIsSeekTimelineOpen={setIsSeekTimelineOpen} filePath={filePath} formatTimecode={formatTimecode} commandedTimeRef={commandedTimeRef} />
+          <CustomTextInput
+            className={styles['time']}
+            ref={timeRef}
+            onClick={() => setIsSeekTimelineOpen(true)}
+            value={timeFormat}
+            readOnly
+            style={{ width: 100 }}
+          />
+          <div>
+            {frameFormat}{isZoomed ? ` ${displayTimePercent}` : ''}
+          </div>
         </div>
         <div style={{ height: timelineHeight, display: 'flex', alignItems: 'center' }}>
           Segments
@@ -510,12 +558,12 @@ function Timeline({
           )}
         </div>
 
-        <div style={timeWrapperStyle} className={styles['time-wrapper']}>
+        {/* <div style={timeWrapperStyle} className={styles['time-wrapper']}>
           <div className={styles['time']} ref={timeRef}>
             {formatTimeAndFrames(displayTime)}{isZoomed ? ` ${displayTimePercent}` : ''}
           </div>
+        </div> */}
 
-        </div>
         {commandedTimePercent !== undefined && (
         <CommandedTime commandedTimePercent={commandedTimePercent} />
         )}
