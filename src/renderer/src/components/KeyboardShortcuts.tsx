@@ -7,7 +7,6 @@ import groupBy from 'lodash/groupBy';
 import orderBy from 'lodash/orderBy';
 import uniq from 'lodash/uniq';
 import { AnimatePresence, motion } from 'framer-motion';
-
 import useUserSettings from '../hooks/useUserSettings';
 import SetCutpointButton from './SetCutpointButton';
 import SegmentCutpointButton from './SegmentCutpointButton';
@@ -21,12 +20,13 @@ import Warning from './Warning';
 import Button from './Button';
 import Action from './Action';
 import TextInput from './TextInput';
+import { DialogContent, Dialog as CustomDialog, DialogSectionTitle, DialogRow, DialogCell, DialogCellDescription } from './CustomDialog';
+import CustomButton from './CustomButton';
 
 
 type Category = string;
 
 type ActionsMap = Record<KeyboardAction, { name: string, category?: Category, before?: ReactNode }>;
-
 
 const renderKeys = (keys: string[]) => keys.map((key, i) => (
   <Fragment key={key}>
@@ -133,7 +133,12 @@ const CreateBinding = memo(({
   );
 });
 
-const rowStyle = { display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(0,0,0,0.1)', paddingBottom: '.2em' };
+const rowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  borderBottom: '1px solid rgba(120,120,120,0.1)',
+  padding: '.4em 0',
+};
 
 function WheelModifier({ text, wheelText, modifier }: { text: string, wheelText: string, modifier: ModifierKey }) {
   return (
@@ -149,12 +154,12 @@ function WheelModifier({ text, wheelText, modifier }: { text: string, wheelText:
 
 // eslint-disable-next-line react/display-name
 const KeyboardShortcuts = memo(({
-  keyBindings, setKeyBindings, resetKeyBindings, currentCutSeg,
+  keyBindings, setKeyBindings, currentCutSeg, searchQuery,
 }: {
   keyBindings: KeyBinding[],
   setKeyBindings: Dispatch<SetStateAction<KeyBinding[]>>,
-  resetKeyBindings: () => void,
   currentCutSeg: StateSegment | undefined,
+  searchQuery: string,
 }) => {
   const { t } = useTranslation();
 
@@ -753,13 +758,7 @@ const KeyboardShortcuts = memo(({
   }, [actionsMap, keyBindings, setKeyBindings]);
 
   const [creatingBinding, setCreatingBinding] = useState<KeyboardAction>();
-  const [searchQuery, setSearchQuery] = useState('');
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    searchInputRef.current?.focus();
-  }, []);
 
   const searchQueryTrimmed = searchQuery.toLowerCase().trim();
   const isSearching = !!searchQueryTrimmed;
@@ -782,13 +781,6 @@ const KeyboardShortcuts = memo(({
     setKeyBindings((existingBindings) => existingBindings.filter((existingBinding) => !(existingBinding.keys === keys && existingBinding.action === action)));
   }, [setKeyBindings, t]);
 
-
-  const onResetClick = useCallback(() => {
-    // eslint-disable-next-line no-alert
-    if (!window.confirm(t('Are you sure you want to reset all keyboard bindings?'))) return;
-
-    resetKeyBindings();
-  }, [resetKeyBindings, t]);
 
   const onAddBindingClick = useCallback((action: KeyboardAction) => {
     setCreatingBinding(action);
@@ -823,59 +815,76 @@ const KeyboardShortcuts = memo(({
 
   return (
     <>
-      <div style={{ marginBottom: '1em' }}>
-        <div style={{ marginBottom: '1em' }}>
-          <TextInput ref={searchInputRef} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search" style={{ width: '100%', padding: '.4em .8em' }} />
+      {categoriesWithActions.map(([category, actionsInCategory]) => (
+        <div key={category}>
+          {category !== 'undefined' && (
+            <DialogSectionTitle>
+              {category}
+            </DialogSectionTitle>
+          )}
+
+          {actionsInCategory.map(([action, actionObj]) => {
+            const actionName = (actionObj && actionObj.name) || action;
+            const beforeContent = actionObj && actionObj.before;
+
+            const bindingsForThisAction = keyBindings.filter((keyBinding) => keyBinding.action === action);
+
+            return (
+              <DialogRow key={action}>
+                <DialogCell>
+                  {beforeContent}
+                  <div>{actionName}</div>
+                  <DialogCellDescription>
+                    {action}
+                  </DialogCellDescription>
+                  {/* <div style={{ fontSize: '.8em', opacity: 0.3 }} title={t('API action name: {{action}}', { action })}>{action}</div> */}
+                </DialogCell>
+
+                <DialogCell alignEnd>
+                  {bindingsForThisAction.map(({ keys }) => (
+                    <div key={keys} style={{ display: 'flex', alignItems: 'center' }}>
+                      {renderKeys(splitKeyboardKeys(keys))}
+
+                      <IconButton title={t('Remove key binding')} appearance="minimal" intent="danger" icon={DeleteIcon} onClick={() => onDeleteBindingClick({ action, keys })} />
+                    </div>
+                  ))}
+
+                  {bindingsForThisAction.length === 0 && <span style={{ opacity: 0.8, fontSize: '.8em' }}>{t('No binding')}</span>}
+                </DialogCell>
+
+                <IconButton title={t('Bind new key to action')} appearance="minimal" intent="success" icon={AddIcon} onClick={() => onAddBindingClick(action)} />
+              </DialogRow>
+            );
+          })}
+
+          {extraLinesPerCategory[category] && <div style={{ marginTop: '.8em' }}>{extraLinesPerCategory[category]}</div>}
         </div>
+      ))}
 
-        {categoriesWithActions.map(([category, actionsInCategory]) => (
-          <div key={category}>
-            {category !== 'undefined' && <div style={{ marginTop: '2em', marginBottom: '.7em', fontSize: '1.4em' }}>{category}</div>}
-
-            {actionsInCategory.map(([action, actionObj]) => {
-              const actionName = (actionObj && actionObj.name) || action;
-              const beforeContent = actionObj && actionObj.before;
-
-              const bindingsForThisAction = keyBindings.filter((keyBinding) => keyBinding.action === action);
-
-              return (
-                <div key={action} style={rowStyle}>
-                  <div>
-                    {beforeContent}
-                    <span title={action} style={{ marginRight: '.5em', opacity: 0.9 }}>{actionName}</span>
-                    <div style={{ fontSize: '.8em', opacity: 0.3 }} title={t('API action name: {{action}}', { action })}>{action}</div>
-                  </div>
-
-                  <div style={{ flexGrow: 1 }} />
-
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                    {bindingsForThisAction.map(({ keys }) => (
-                      <div key={keys} style={{ display: 'flex', alignItems: 'center' }}>
-                        {renderKeys(splitKeyboardKeys(keys))}
-
-                        <IconButton title={t('Remove key binding')} appearance="minimal" intent="danger" icon={DeleteIcon} onClick={() => onDeleteBindingClick({ action, keys })} />
-                      </div>
-                    ))}
-
-                    {bindingsForThisAction.length === 0 && <span style={{ opacity: 0.8, fontSize: '.8em' }}>{t('No binding')}</span>}
-                  </div>
-
-                  <IconButton title={t('Bind new key to action')} appearance="minimal" intent="success" icon={AddIcon} onClick={() => onAddBindingClick(action)} />
-                </div>
-              );
-            })}
-
-            {extraLinesPerCategory[category] && <div style={{ marginTop: '.8em' }}>{extraLinesPerCategory[category]}</div>}
-          </div>
-        ))}
-      </div>
-
-      {!isSearching && <Button onClick={onResetClick} style={{ marginBottom: '1em' }}>{t('Reset')}</Button>}
 
       <CreateBinding actionsMap={actionsMap} action={creatingBinding} setCreatingBinding={setCreatingBinding} onNewKeyBindingConfirmed={onNewKeyBindingConfirmed} />
     </>
   );
 });
+
+
+function DialogFooter({ onResetClick }: { onResetClick: () => void }) {
+  const { t } = useTranslation();
+  return <CustomButton color="warning" onClick={onResetClick} style={{ marginBottom: '1em' }} label={t('Reset')} />;
+}
+
+function DialogHeader({ searchQuery, setSearchQuery, searchInputRef }: { searchQuery: string, setSearchQuery: Dispatch<SetStateAction<string>>, searchInputRef: React.RefObject<HTMLInputElement> }) {
+  const { t } = useTranslation();
+  return (
+    <TextInput
+      ref={searchInputRef}
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder={t('Search')}
+      style={{ padding: '.4em .8em' }}
+    />
+  );
+}
 
 function KeyboardShortcutsDialog({
   isShown, onHide, keyBindings, setKeyBindings, resetKeyBindings, currentCutSeg,
@@ -888,13 +897,37 @@ function KeyboardShortcutsDialog({
   currentCutSeg: StateSegment | undefined,
 }) {
   const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const onResetClick = useCallback(() => {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(t('Are you sure you want to reset all keyboard bindings?'))) return;
+
+    resetKeyBindings();
+  }, [resetKeyBindings, t]);
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
 
   return (
-    <Sheet visible={isShown} onClosePress={onHide} maxWidth="40em" style={{ padding: '0 2em' }}>
-      <h1>{t('Keyboard & mouse shortcuts')}</h1>
-
-      <KeyboardShortcuts keyBindings={keyBindings} setKeyBindings={setKeyBindings} currentCutSeg={currentCutSeg} resetKeyBindings={resetKeyBindings} />
-    </Sheet>
+    <CustomDialog open={isShown}>
+      <DialogContent
+        title={t('Keyboard & mouse shortcuts')}
+        footer={DialogFooter({ onResetClick })}
+        header={DialogHeader({ searchQuery, setSearchQuery, searchInputRef })}
+        onCloseClick={onHide}
+        style={{ maxWidth: '40em' }}
+      >
+        <KeyboardShortcuts
+          keyBindings={keyBindings}
+          setKeyBindings={setKeyBindings}
+          currentCutSeg={currentCutSeg}
+          searchQuery={searchQuery}
+        />
+      </DialogContent>
+    </CustomDialog>
   );
 }
 

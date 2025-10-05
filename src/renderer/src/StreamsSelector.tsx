@@ -1,11 +1,14 @@
 import { memo, useState, useMemo, useCallback, Dispatch, SetStateAction, CSSProperties, ReactNode, ChangeEventHandler, DragEventHandler } from 'react';
 
-import { FaImage, FaPaperclip, FaVideo, FaVideoSlash, FaFileImport, FaVolumeUp, FaVolumeMute, FaBan, FaFileExport } from 'react-icons/fa';
+import { FaImage, FaPaperclip, FaVideo, FaVideoSlash, FaFileImport, FaVolumeUp, FaVolumeMute, FaBan, FaFileExport, FaInfo, FaRegEdit } from 'react-icons/fa';
 import { GoFileBinary } from 'react-icons/go';
 import { MdSubtitles } from 'react-icons/md';
 import { BookIcon, MoreIcon, Position, Popover, Menu, TrashIcon, EditIcon, InfoSignIcon, IconButton, SortAscIcon, SortDescIcon, ForkIcon, EyeOpenIcon, FilterIcon } from 'evergreen-ui';
 import { useTranslation } from 'react-i18next';
 import prettyBytes from 'pretty-bytes';
+import { IoMdEye } from 'react-icons/io';
+import { FaFilter } from 'react-icons/fa6';
+import { HiOutlineArrowUpOnSquareStack } from 'react-icons/hi2';
 
 import Dialog from './components/Dialog';
 import AutoExportToggler from './components/AutoExportToggler';
@@ -22,7 +25,8 @@ import tryShowGpsMap from './gps';
 import Button from './components/Button';
 import Checkbox from './components/Checkbox';
 import styles from './StreamsSelector.module.css';
-
+import CustomButton from './components/CustomButton';
+import { Select as CustomSelect, SelectItem } from './components/CustomSelect';
 
 const dispositionOptions = ['default', 'dub', 'original', 'comment', 'lyrics', 'karaoke', 'forced', 'hearing_impaired', 'visual_impaired', 'clean_effects', 'attached_pic', 'captions', 'descriptions', 'dependent', 'metadata'];
 const unchangedDispositionValue = 'llc_disposition_unchanged';
@@ -212,11 +216,11 @@ const Stream = memo(({ filePath, stream, onToggle, toggleCopyStreamIds, copyStre
 
   const onClick = () => onToggle && onToggle(stream.index);
 
-  const onDispositionChange = useCallback<ChangeEventHandler<HTMLSelectElement>>((e) => {
+  const onDispositionChange = useCallback((value: string) => {
     let newDisposition: string;
-    if (dispositionOptions.includes(e.target.value)) {
-      newDisposition = e.target.value;
-    } else if (e.target.value === deleteDispositionValue) {
+    if (dispositionOptions.includes(value)) {
+      newDisposition = value;
+    } else if (value === deleteDispositionValue) {
       newDisposition = deleteDispositionValue; // needs a separate value (not a real disposition)
     } // else unchanged (undefined)
 
@@ -252,15 +256,15 @@ const Stream = memo(({ filePath, stream, onToggle, toggleCopyStreamIds, copyStre
       <td style={{ maxWidth: '2.5em', overflow: 'hidden' }} title={language}>{language}</td>
       <td>{stream.width && stream.height && `${stream.width}x${stream.height}`} {stream.channels && `${stream.channels}c`} {stream.channel_layout} {streamFps && `${streamFps.toFixed(2)}fps`}</td>
       <td>
-        <Select style={{ width: '6em' }} value={effectiveDisposition || unchangedDispositionValue} onChange={onDispositionChange}>
-          <option value="" disabled>{t('Disposition')}</option>
-          <option value={unchangedDispositionValue}>{t('Unchanged')}</option>
-          <option value={deleteDispositionValue}>{t('Remove')}</option>
+        <CustomSelect style={{ width: '6em' }} value={effectiveDisposition || unchangedDispositionValue} onValueChange={onDispositionChange} label={t('Disposition')}>
+          {/* <option value="" disabled>{t('Disposition')}</option> */}
+          <SelectItem value={unchangedDispositionValue}>{t('Unchanged')}</SelectItem>
+          <SelectItem value={deleteDispositionValue}>{t('Remove')}</SelectItem>
 
           {dispositionOptions.map((key) => (
-            <option key={key} value={key}>{key}</option>
+            <SelectItem key={key} value={key}>{key}</SelectItem>
           ))}
-        </Select>
+        </CustomSelect>
 
       </td>
 
@@ -321,19 +325,60 @@ function FileHeading({ path, formatData, chapters, onTrashClick, onEditClick, to
   const { t } = useTranslation();
 
   return (
-    <div style={{ display: 'flex', marginBottom: '.2em', borderBottom: '1px solid var(--gray-7)' }}>
-      <div title={path} style={{ wordBreak: 'break-all', marginRight: '1em', fontWeight: 'bold' }}>{path.replace(/.*\/([^/]+)$/, '$1')}</div>
+    <div style={{ display: 'flex', marginBottom: '.5em', paddingBottom: '.5em', borderBottom: '1px solid var(--gray-7)', alignItems: 'center' }}>
+      <div title={path} style={{ wordBreak: 'break-all', marginRight: '1em', fontWeight: '600' }}>{path.replace(/.*\/([^/]+)$/, '$1')}</div>
 
-      <div style={{ flexGrow: 1 }} />
+      <div style={{ display: 'flex', gap: 6, marginInlineStart: 'auto' }}>
+        {chapters && chapters.length > 0 && <IconButton icon={BookIcon} onClick={() => onInfoClick(chapters, t('Chapters'))} appearance="minimal" iconSize={18} />}
+        <CustomButton
+          icon={IoMdEye}
+          title={t('Toggle all tracks')}
+          onClick={() => toggleCopyAllStreams()}
+          color="mute"
+          toggleable
+        />
+        {changeEnabledStreamsFilter && (
+        <CustomButton
+          icon={FaFilter}
+          title={t('Filter tracks')}
+          onClick={changeEnabledStreamsFilter}
+          color="mute"
+          toggleable
+        />
+        )}
+        <CustomButton
+          icon={FaInfo}
+          title={t('File info')}
+          onClick={() => onInfoClick(formatData, t('File info'))}
+          color="mute"
+        />
+        {onEditClick
+      && (
+      <CustomButton
+        icon={FaRegEdit}
+        title={t('Edit file metadata')}
+        onClick={onEditClick}
+        color="mute"
+      />
+      )}
+        {onExtractAllStreamsPress
+      && (
+      <CustomButton
+        icon={HiOutlineArrowUpOnSquareStack}
+        title={t('Export each track as individual files')}
+        onClick={onExtractAllStreamsPress}
+        color="mute"
+        largeIcon
+      />
+      )}
+        {/* <IconButton iconSize={18} icon={EyeOpenIcon} title={t('Toggle all tracks')} onClick={() => toggleCopyAllStreams()} appearance="minimal" /> */}
+        {/* {changeEnabledStreamsFilter && <IconButton icon={FilterIcon} title={t('Filter tracks')} onClick={changeEnabledStreamsFilter} appearance="minimal" iconSize={18} />} */}
+        {/* <IconButton icon={InfoSignIcon} title={t('File info')} onClick={() => onInfoClick(formatData, t('File info'))} appearance="minimal" iconSize={18} /> */}
+        {/* {onEditClick && <IconButton icon={EditIcon} title={t('Edit file metadata')} onClick={onEditClick} appearance="minimal" iconSize={18} />} */}
+        {/* {onExtractAllStreamsPress && <IconButton iconSize={16} title={t('Export each track as individual files')} icon={ForkIcon} onClick={onExtractAllStreamsPress} appearance="minimal" />} */}
 
-      {chapters && chapters.length > 0 && <IconButton icon={BookIcon} onClick={() => onInfoClick(chapters, t('Chapters'))} appearance="minimal" iconSize={18} />}
-      <IconButton iconSize={18} icon={EyeOpenIcon} title={t('Toggle all tracks')} onClick={() => toggleCopyAllStreams()} appearance="minimal" />
-      {changeEnabledStreamsFilter && <IconButton icon={FilterIcon} title={t('Filter tracks')} onClick={changeEnabledStreamsFilter} appearance="minimal" iconSize={18} />}
-      <IconButton icon={InfoSignIcon} title={t('File info')} onClick={() => onInfoClick(formatData, t('File info'))} appearance="minimal" iconSize={18} />
-      {onEditClick && <IconButton icon={EditIcon} title={t('Edit file metadata')} onClick={onEditClick} appearance="minimal" iconSize={18} />}
-      {onExtractAllStreamsPress && <IconButton iconSize={16} title={t('Export each track as individual files')} icon={ForkIcon} onClick={onExtractAllStreamsPress} appearance="minimal" />}
-
-      {onTrashClick && <IconButton icon={TrashIcon} onClick={onTrashClick} appearance="minimal" intent="danger" iconSize={18} />}
+        {onTrashClick && <IconButton icon={TrashIcon} onClick={onTrashClick} appearance="minimal" intent="danger" iconSize={18} />}
+      </div>
     </div>
   );
 }
@@ -341,7 +386,7 @@ function FileHeading({ path, formatData, chapters, onTrashClick, onEditClick, to
 function Thead() {
   const { t } = useTranslation();
   return (
-    <thead style={{ color: 'var(--gray-12)', textAlign: 'left', fontSize: '.9em' }}>
+    <thead style={{ color: 'var(--gray-12)', textAlign: 'left' }}>
       <tr>
         <th>{t('Keep?')}</th>
         <th>{t('Codec')}</th>
@@ -357,7 +402,7 @@ function Thead() {
   );
 }
 
-const fileStyle: CSSProperties = { margin: '1.5em 1em 1.5em 1em', padding: 5, overflowX: 'auto' };
+const fileStyle: CSSProperties = { overflowX: 'auto' };
 
 
 function StreamsSelector({
@@ -420,7 +465,7 @@ function StreamsSelector({
 
   return (
     <>
-      <p style={{ margin: '.5em 2em .5em 1em' }}>{t('Click to select which tracks to keep when exporting:')}</p>
+      <p>{t('Click to select which tracks to keep when exporting:')}</p>
 
       <div style={fileStyle} onDrop={onStreamSourceFileDrop}>
         {/* We only support editing main file metadata for now */}
@@ -479,10 +524,17 @@ function StreamsSelector({
         </div>
       ))}
 
-      <div style={{ margin: '1em 1em' }}>
-        <Button style={{ marginBottom: '1em', padding: '0.3em 1em' }} onClick={showAddStreamSourceDialog}>
+      <div>
+        <CustomButton
+          icon={FaFileImport}
+          label={t('Include more tracks from other file')}
+          onClick={showAddStreamSourceDialog}
+          style={{ marginTop: '1em' }}
+          color="secondary"
+        />
+        {/* <Button style={{ marginBottom: '1em', padding: '0.3em 1em' }} onClick={showAddStreamSourceDialog}>
           <FaFileImport style={{ verticalAlign: 'middle', marginRight: '.5em' }} /> {t('Include more tracks from other file')}
-        </Button>
+        </Button> */}
 
         {nonCopiedExtraStreams.length > 0 && (
           <div style={{ marginBottom: '1em' }}>

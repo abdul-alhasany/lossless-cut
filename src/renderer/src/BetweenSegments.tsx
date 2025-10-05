@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FaTrashAlt, FaSave } from 'react-icons/fa';
+import { LuSave, LuSaveOff } from "react-icons/lu";
 
 import { mySpring } from './animations';
 import { saveColor } from './colors';
@@ -38,16 +39,16 @@ function BetweenSegments({ start, end, fileDurationNonZero, invertCutSegments }:
       layout
       transition={mySpring}
     >
-      <div style={{ flexGrow: 1, borderBottom: '1px dashed var(--gray-10)', marginLeft: 5, marginRight: 5 }} />
+      <div style={{ flexGrow: 1, borderBottom: '1px dashed var(--gray-10)', marginLeft: 5, marginRight: 5, opacity: 0.5 }} />
       {/* https://github.com/mifi/lossless-cut/issues/2157 */}
       {effectiveExportMode !== 'segments_to_chapters' && (
         <>
           {invertCutSegments ? (
-            <FaSave style={{ color: saveColor }} size={16} />
+            <LuSave style={{ color: saveColor }} size={16} />
           ) : (
-            <FaTrashAlt style={{ color: 'var(--gray-10)' }} size={16} />
+            <LuSaveOff style={{ color: 'var(--red-10)' }} size={16} />
           )}
-          <div style={{ flexGrow: 1, borderBottom: '1px dashed var(--gray-10)', marginLeft: 5, marginRight: 5 }} />
+          <div style={{ flexGrow: 1, borderBottom: '1px dashed var(--gray-10)', marginLeft: 5, marginRight: 5, opacity: 0.5 }} />
         </>
       )}
     </motion.div>

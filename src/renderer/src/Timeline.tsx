@@ -4,12 +4,11 @@ import debounce from 'lodash/debounce';
 import { useTranslation } from 'react-i18next';
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa';
 import invariant from 'tiny-invariant';
-
+import { getFrameCountRaw } from './edlFormats';
 import TimelineSeg from './TimelineSeg';
 import BetweenSegments from './BetweenSegments';
 import useContextMenu from './hooks/useContextMenu';
 import useUserSettings from './hooks/useUserSettings';
-
 import styles from './Timeline.module.css';
 
 
@@ -17,7 +16,8 @@ import { timelineBackground, darkModeTransition } from './colors';
 import { Frame } from './ffmpeg';
 import { FormatTimecode, InverseCutSegment, OverviewWaveform, RenderableWaveform, WaveformSlice, StateSegment, Thumbnail } from './types';
 import Button from './components/Button';
-
+import useTimecode from './hooks/useTimecode';
+import useUserSettingsRoot from './hooks/useUserSettingsRoot';
 
 type CalculateTimelinePercent = (time: number) => string | undefined;
 
@@ -66,16 +66,17 @@ const Waveforms = memo(({ calculateTimelinePercent, fileDurationNonZero, wavefor
   </div>
 ));
 
+
 // eslint-disable-next-line react/display-name
 const CommandedTime = memo(({ commandedTimePercent }: { commandedTimePercent: string }) => {
   const color = 'var(--gray-12)';
-  const commonStyle: CSSProperties = { left: commandedTimePercent, position: 'absolute', pointerEvents: 'none' };
+  // const commonStyle: CSSProperties = { left: commandedTimePercent, position: 'absolute', pointerEvents: 'none' };
   return (
-    <>
-      <FaCaretDown style={{ ...commonStyle, top: 0, color, fontSize: 14, marginLeft: -7, marginTop: -6 }} />
-      <div style={{ ...commonStyle, bottom: 0, top: 0, backgroundColor: color, width: currentTimeWidth }} />
-      <FaCaretUp style={{ ...commonStyle, bottom: 0, color, fontSize: 14, marginLeft: -7, marginBottom: -5 }} />
-    </>
+    <div style={{ left: commandedTimePercent, position: 'absolute', pointerEvents: 'none', height: '100%', top: 0, bottom: 0 }}>
+      <FaCaretDown style={{ position: 'absolute', top: 0, color, fontSize: 28, left: '50%', transform: 'translate(-50%, -40%)' }} />
+      <div style={{ position: 'absolute', bottom: 0, top: 0, backgroundColor: color, width: currentTimeWidth }} />
+      {/* <FaCaretUp style={{ bottom: 0, color, fontSize: 14, left: '50%', transform: 'translateX(-50%)' }} /> */}
+    </div>
   );
 });
 
@@ -116,6 +117,7 @@ function Timeline({
   commandedTimeRef,
   goToTimecode,
   darkMode,
+  detectedFps,
 } : {
   fileDurationNonZero: number,
   startTimeOffset: number,
@@ -149,6 +151,7 @@ function Timeline({
   commandedTimeRef: MutableRefObject<number>,
   goToTimecode: () => void,
   darkMode: boolean,
+  detectedFps: number,
 }) {
   const { t } = useTranslation();
 
@@ -178,8 +181,56 @@ function Timeline({
     return pos !== undefined ? `${pos * 100}%` : undefined;
   }, [calculateTimelinePos]);
 
+
+  const calcZoomWindowStartTime = useCallback(() => (timelineScrollerRef.current
+    ? (timelineScrollerRef.current.scrollLeft / (timelineScrollerRef.current!.offsetWidth * zoom)) * fileDurationNonZero
+    : 0), [fileDurationNonZero, zoom]);
+
   const currentTimePercent = useMemo(() => calculateTimelinePercent(playerTime), [calculateTimelinePercent, playerTime]);
-  const commandedTimePercent = useMemo(() => calculateTimelinePercent(commandedTime), [calculateTimelinePercent, commandedTime]);
+  const commandedTimePercent = useMemo(() => {
+    if (!isZoomed || zoomWindowEndTime == null) {
+      return calculateTimelinePercent(commandedTime);
+    }
+
+    const currentDisplayedDuration = zoomWindowEndTime - zoomWindowStartTime;
+    const pos = ((commandedTime - zoomWindowStartTime) / currentDisplayedDuration) * 100;
+    return `${pos}%`;
+  }, [zoomWindowEndTime, zoomWindowStartTime, commandedTime, calculateTimelinePercent, isZoomed]);
+
+  const { timecodeFormat } = useUserSettingsRoot();
+  const { getFrameCount } = useTimecode({ detectedFps, timecodeFormat });
+  // eslint-disable-next-line react/display-name
+  const TicksTimeline = useMemo(() => {
+    // const getFrameCount = useCallback((sec: number) => getFrameCountRaw(detectedFps, sec), [detectedFps]);
+    const frames = getFrameCount(fileDurationNonZero);
+
+    const ticks: JSX.Element[] = [];
+
+    // Don't show frame count ticks if less than 30 frames in total
+    if (frames == null || frames < 30) {
+      return ticks;
+    }
+
+    for (let i = 0; i <= frames; i += 1) {
+      const time = (i / frames) * fileDurationNonZero;
+      const percentage = calculateTimelinePercent(time);
+
+      // Make every detectedFps tick longer than others
+      const frameDuration = 1 / detectedFps;
+      const isMajorTick = (Math.abs((time / frameDuration) % detectedFps) < 1);
+      let tickHeight = isMajorTick ? '40%' : '20%';
+
+      // make every other tick a bit longer too
+      if (!isMajorTick && i % 2 === 0) {
+        tickHeight = '10%';
+      }
+
+      ticks.push(
+        <div key={i} style={{ position: 'absolute', left: `${percentage}`, height: tickHeight, borderLeft: '1px solid var(--gray-8)', boxSizing: 'border-box' }} />,
+      );
+    }
+    return ticks;
+  }, [getFrameCount, detectedFps, fileDurationNonZero, calculateTimelinePercent]);
 
   const timeOfInterestPosPixels = useMemo(() => {
     // https://github.com/mifi/lossless-cut/issues/676
@@ -187,10 +238,6 @@ function Timeline({
     if (pos != null && timelineScrollerRef.current) return pos * zoom * timelineScrollerRef.current!.offsetWidth;
     return undefined;
   }, [calculateTimelinePos, relevantTime, zoom]);
-
-  const calcZoomWindowStartTime = useCallback(() => (timelineScrollerRef.current
-    ? (timelineScrollerRef.current.scrollLeft / (timelineScrollerRef.current!.offsetWidth * zoom)) * fileDurationNonZero
-    : 0), [fileDurationNonZero, zoom]);
 
   // const zoomWindowStartTime = calcZoomWindowStartTime(duration, zoom);
 
@@ -342,29 +389,101 @@ function Timeline({
   }, [onGenerateOverviewWaveformClick]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/mouse-events-have-key-events
-    <div
-      style={{ position: 'relative', borderTop: '1px solid var(--gray-7)', borderBottom: '1px solid var(--gray-7)' }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
+    <div style={{ display: 'flex', borderTop: '1px solid var(--gray-7)', borderBottom: '1px solid var(--gray-7)', gap: 10, backgroundColor: 'var(--gray-1)' }}>
+      <div style={{
+        width: 150,
+        display: 'flex',
+        flexDirection: 'column',
+        borderInlineEnd: '1px solid var(--gray-7)',
+        backgroundColor: 'var(--gray-6)',
+      }}
+      >
+        <div style={{ height: timelineHeight, display: 'flex', alignItems: 'center' }}>
+          Timeline
+        </div>
+        <div style={{ height: timelineHeight, display: 'flex', alignItems: 'center' }}>
+          Segments
+        </div>
+        {waveformEnabled && (
+        <div style={{ height: waveformHeight, display: 'flex', alignItems: 'center' }}>
+          Waveform
+        </div>
+        )}
+        {showThumbnails && (
+        <div style={{ height: 60, display: 'flex', alignItems: 'center' }}>
+          Thumbnails
+        </div>
+        )}
+      </div>
+      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions,jsx-a11y/mouse-events-have-key-events */}
+      <div
+        style={{ position: 'relative', flexGrow: 1 }}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
       // eslint-disable-next-line jsx-a11y/mouse-events-have-key-events
-      onMouseOut={onMouseOut}
-    >
-      {(waveformEnabled && !shouldShowWaveform) && (
+        onMouseOut={onMouseOut}
+      >
+        {(waveformEnabled && !shouldShowWaveform) && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: timelineHeight, bottom: timelineHeight, left: 0, right: 0, color: 'var(--gray-11)' }}>
           {t('Zoom in more to view waveform')}
           <Button onClick={onGenerateOverviewWaveformClick2} style={{ marginLeft: '.5em' }}>{t('Load overview')}</Button>
         </div>
-      )}
+        )}
 
-      <div
-        style={{ overflowX: 'scroll', overflowY: 'hidden' }}
-        className="hide-scrollbar"
-        onWheel={onWheel}
-        onScroll={onTimelineScroll}
-        ref={timelineScrollerRef}
-      >
-        {waveformEnabled && shouldShowWaveform && (waveforms.length > 0 || overviewWaveform != null) && (
+        <div
+          style={{ overflowX: 'scroll', overflowY: 'hidden' }}
+          className="hide-scrollbar"
+          onWheel={onWheel}
+          onScroll={onTimelineScroll}
+          ref={timelineScrollerRef}
+        >
+          <div
+            style={{ height: timelineHeight, width: `${zoom * 100}%`, position: 'relative', transition: darkModeTransition }}
+          >
+            {TicksTimeline}
+          </div>
+          <div
+            style={{ height: timelineHeight, width: `${zoom * 100}%`, position: 'relative', transition: darkModeTransition }}
+            ref={timelineWrapperRef}
+          >
+            {inverseCutSegments.map((seg) => (
+              <BetweenSegments
+                key={seg.segId}
+                start={seg.start}
+                end={seg.end}
+                fileDurationNonZero={fileDurationNonZero}
+                invertCutSegments={invertCutSegments}
+              />
+            ))}
+
+            {cutSegments.map((seg, i) => {
+              const selected = invertCutSegments || seg.selected;
+
+              return (
+                <TimelineSeg
+                  key={seg.segId}
+                  seg={seg}
+                  segNum={i}
+                  onSegClick={setCurrentSegIndex}
+                  isActive={i === currentSegIndexSafe}
+                  fileDurationNonZero={fileDurationNonZero}
+                  invertCutSegments={invertCutSegments}
+                  formatTimecode={formatTimecode}
+                  selected={selected}
+                />
+              );
+            })}
+
+            {shouldShowKeyframes && !areKeyframesTooClose && keyFramesInZoomWindow.map((f) => (
+              <div key={f.time} style={{ position: 'absolute', top: 0, bottom: 0, left: `${(f.time / fileDurationNonZero) * 100}%`, marginLeft: -1, width: 1, background: 'var(--gray-11)', pointerEvents: 'none' }} />
+            ))}
+
+            {currentTimePercent !== undefined && (
+            <motion.div transition={{ type: 'spring', damping: 70, stiffness: 800 }} animate={{ left: currentTimePercent }} style={{ position: 'absolute', bottom: 0, top: 0, backgroundColor: 'var(--gray-12)', width: currentTimeWidth, pointerEvents: 'none' }} />
+            )}
+
+          </div>
+          {waveformEnabled && shouldShowWaveform && (waveforms.length > 0 || overviewWaveform != null) && (
           <Waveforms
             calculateTimelinePercent={calculateTimelinePercent}
             fileDurationNonZero={fileDurationNonZero}
@@ -374,9 +493,9 @@ function Timeline({
             darkMode={darkMode}
             height={waveformHeight}
           />
-        )}
+          )}
 
-        {showThumbnails && (
+          {showThumbnails && (
           <div style={{ height: 60, width: `${zoom * 100}%`, position: 'relative', marginBottom: 3 }}>
             {thumbnails.map((thumbnail, i) => {
               const leftPercent = (thumbnail.time / fileDurationNonZero) * 100;
@@ -388,57 +507,18 @@ function Timeline({
               );
             })}
           </div>
+          )}
+        </div>
+
+        <div style={timeWrapperStyle} className={styles['time-wrapper']}>
+          <div className={styles['time']} ref={timeRef}>
+            {formatTimeAndFrames(displayTime)}{isZoomed ? ` ${displayTimePercent}` : ''}
+          </div>
+
+        </div>
+        {commandedTimePercent !== undefined && (
+        <CommandedTime commandedTimePercent={commandedTimePercent} />
         )}
-
-        <div
-          style={{ height: timelineHeight, width: `${zoom * 100}%`, position: 'relative', backgroundColor: timelineBackground, transition: darkModeTransition }}
-          ref={timelineWrapperRef}
-        >
-          {inverseCutSegments.map((seg) => (
-            <BetweenSegments
-              key={seg.segId}
-              start={seg.start}
-              end={seg.end}
-              fileDurationNonZero={fileDurationNonZero}
-              invertCutSegments={invertCutSegments}
-            />
-          ))}
-
-          {cutSegments.map((seg, i) => {
-            const selected = invertCutSegments || seg.selected;
-
-            return (
-              <TimelineSeg
-                key={seg.segId}
-                seg={seg}
-                segNum={i}
-                onSegClick={setCurrentSegIndex}
-                isActive={i === currentSegIndexSafe}
-                fileDurationNonZero={fileDurationNonZero}
-                invertCutSegments={invertCutSegments}
-                formatTimecode={formatTimecode}
-                selected={selected}
-              />
-            );
-          })}
-
-          {shouldShowKeyframes && !areKeyframesTooClose && keyFramesInZoomWindow.map((f) => (
-            <div key={f.time} style={{ position: 'absolute', top: 0, bottom: 0, left: `${(f.time / fileDurationNonZero) * 100}%`, marginLeft: -1, width: 1, background: 'var(--gray-11)', pointerEvents: 'none' }} />
-          ))}
-
-          {currentTimePercent !== undefined && (
-            <motion.div transition={{ type: 'spring', damping: 70, stiffness: 800 }} animate={{ left: currentTimePercent }} style={{ position: 'absolute', bottom: 0, top: 0, backgroundColor: 'var(--gray-12)', width: currentTimeWidth, pointerEvents: 'none' }} />
-          )}
-          {commandedTimePercent !== undefined && (
-            <CommandedTime commandedTimePercent={commandedTimePercent} />
-          )}
-        </div>
-      </div>
-
-      <div style={timeWrapperStyle} className={styles['time-wrapper']}>
-        <div className={styles['time']} ref={timeRef}>
-          {formatTimeAndFrames(displayTime)}{isZoomed ? ` ${displayTimePercent}` : ''}
-        </div>
       </div>
     </div>
   );

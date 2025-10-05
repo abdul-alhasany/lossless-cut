@@ -7,7 +7,9 @@ import Select from './Select';
 import Switch from './Switch';
 import styles from './PlaybackStreamSelector.module.css';
 import { FFprobeStream } from '../../../../ffprobe';
-
+import { Popover, PopoverTrigger, PopoverContent } from './Popover';
+import { Select as CustomSelect, SelectItem } from './CustomSelect';
+import CustomButton from './CustomButton';
 
 function PlaybackStreamSelector({
   subtitleStreams,
@@ -40,15 +42,14 @@ function PlaybackStreamSelector({
     timeoutRef.current = window.setTimeout(() => setControlVisible(false), 10000);
   }, []);
 
-  const onChange = useCallback((e: ChangeEvent<HTMLSelectElement>, fn: (a: number | undefined) => void) => {
+  const onChange = useCallback((value: string, fn: (a: number | undefined) => void) => {
     resetTimer();
-    const index = e.target.value ? parseInt(e.target.value, 10) : undefined;
+    const index = value ? parseInt(value, 10) : undefined;
     fn(index);
-    e.target.blur();
   }, [resetTimer]);
 
-  const onActiveSubtitleChange2 = useCallback<ChangeEventHandler<HTMLSelectElement>>((e) => onChange(e, onActiveSubtitleChange), [onActiveSubtitleChange, onChange]);
-  const onActiveVideoStreamChange2 = useCallback<ChangeEventHandler<HTMLSelectElement>>((e) => onChange(e, onActiveVideoStreamChange), [onActiveVideoStreamChange, onChange]);
+  const onActiveSubtitleChange2 = useCallback((value: string) => onChange(value, onActiveSubtitleChange), [onActiveSubtitleChange, onChange]);
+  const onActiveVideoStreamChange2 = useCallback((value: string) => onChange(value, onActiveVideoStreamChange), [onActiveVideoStreamChange, onChange]);
   const handleActiveAudioStreamsChange = useCallback((index: number, checked: boolean) => {
     resetTimer();
     const newActiveAudioStreamIndexes = new Set(activeAudioStreamIndexes);
@@ -66,11 +67,28 @@ function PlaybackStreamSelector({
 
   return (
     <>
-      {controlVisible && (
-        <motion.div className={styles['wrapper']} initial={{ opacity: 0, transform: 'translateX(100%)' }} animate={{ opacity: 1, transform: 'translateX(0%)' }}>
-          {subtitleStreams.length > 0 && (
-            <div style={{ margin: '0 .5em' }}>
-              <div style={{ marginBottom: '.3em' }}>{t('Subtitle')}</div>
+      {/* {controlVisible && ( */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <CustomButton
+            icon={MdSubtitles}
+            color="mute"
+            largeIcon
+            title={t('Select playback streams')}
+          />
+          {/* <MdSubtitles
+            size={30}
+            role="button"
+            style={{ margin: '0 7px', color: 'var(--gray-12)', opacity: 0.7 }}
+            // onClick={onIconClick}
+          /> */}
+        </PopoverTrigger>
+        {/* <motion.div className={styles['wrapper']} initial={{ opacity: 0, transform: 'translateX(100%)' }} animate={{ opacity: 1, transform: 'translateX(0%)' }}> */}
+        <PopoverContent>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
+            {subtitleStreams.length > 0 && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div>{t('Subtitle')}</div>
 
               <Select
                 value={activeSubtitleStreamIndex ?? ''}
@@ -83,28 +101,28 @@ function PlaybackStreamSelector({
                 ))}
               </Select>
             </div>
-          )}
+            )}
 
-          {videoStreams.length > 0 && (
-            <div style={{ margin: '0 .5em' }}>
-              <div style={{ marginBottom: '.3em' }}>{t('Video track')}</div>
+            {videoStreams.length > 0 && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div>{t('Video track')}</div>
 
-              <Select
-                value={activeVideoStreamIndex ?? ''}
-                onChange={onActiveVideoStreamChange2}
-                onMouseMove={resetTimer}
+              <CustomSelect
+                defaultValue={`${activeVideoStreamIndex ?? 'none'}`}
+                onValueChange={onActiveVideoStreamChange2}
+                // onMouseMove={resetTimer}
               >
-                <option value="">{t('Default')}</option>
+                <SelectItem value="none">{t('Default')}</SelectItem>
                 {videoStreams.map((stream, i) => (
-                  <option key={stream.index} value={stream.index}>#{i + 1} (id {stream.index + 1}) {stream.codec_name}</option>
+                  <SelectItem key={stream.index} value={`${stream.index}`}>#{i + 1} (id {stream.index + 1}) {stream.codec_name}</SelectItem>
                 ))}
-              </Select>
+              </CustomSelect>
             </div>
-          )}
+            )}
 
-          {audioStreams.length > 0 && (
-            <div style={{ margin: '0 .5em' }}>
-              <div style={{ marginBottom: '.3em' }}>{t('Audio track')}</div>
+            {audioStreams.length > 0 && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div>{t('Audio track')}</div>
 
               {audioStreams.map((audioStream, i) => (
                 <div key={audioStream.index}>
@@ -120,16 +138,19 @@ function PlaybackStreamSelector({
                 </div>
               ))}
             </div>
-          )}
-        </motion.div>
-      )}
-
+            )}
+          </div>
+        </PopoverContent>
+        {/* </motion.div> */}
+      </Popover>
+      {/* )} */}
+{/*
       <MdSubtitles
         size={30}
         role="button"
         style={{ margin: '0 7px', color: 'var(--gray-12)', opacity: 0.7 }}
         onClick={onIconClick}
-      />
+      /> */}
     </>
   );
 }

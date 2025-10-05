@@ -1,0 +1,151 @@
+.Overlay {
+    background-color: var(--black-a9);
+    position: fixed;
+    inset: 0;
+
+    &[data-state="open"] {
+        animation: overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &[data-state="closed"] {
+        animation: overlayHide 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
+.Content {
+    background-color: var(--gray-1);
+    border-radius: 6px;
+    box-shadow: var(--shadow-6);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 800px;
+    max-width: 100%;
+    max-height: 85vh;
+    padding: 25px;
+    color: var(--gray-12);
+    overflow: unset;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+
+    &:focus {
+        outline: none;
+    }
+
+    &[data-state="open"] {
+        animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    &[data-state="closed"] {
+        animation: contentHide 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
+.ContentWrapper {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    /* padding-inline-end: 20px; */
+}
+
+.TitleWrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--gray-4);
+    padding: 0 10px 16px 10px;
+}
+
+.Title {
+    margin: 0;
+    font-weight: 700;
+    color: var(--cyan-11);
+    font-size: 18px;
+}
+
+.Description {
+    margin: 10px 0 20px;
+    color: var(--mauve-11);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.SectionTitle {
+    padding: 1em 0;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    background-color: var(--gray-1);
+    color: var(--cyan-11);
+    z-index: 1;
+}
+
+.Row {
+    display: flex;
+    align-items: center;
+    padding: 0.6em;
+    transition: background-color 150ms;
+    margin: 0.2em 0;
+    gap: 8px;
+    border-radius: 6px;
+    &:hover {
+        background-color: var(--gray-3);
+    }
+}
+
+.Cell {
+   color: var(--gray-12);
+   font-size: 0.9em;
+   max-width: 50%;
+}
+
+.CellDescription {
+    color: var(--gray-10);
+    font-size: 0.9em;
+}
+
+@keyframes overlayShow {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes overlayHide {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes contentShow {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes contentHide {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+}

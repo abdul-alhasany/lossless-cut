@@ -1,15 +1,17 @@
 import { CSSProperties, ReactNode, memo, useCallback, useEffect, useRef } from 'react';
 import { IoIosSettings } from 'react-icons/io';
-import { FaLock, FaUnlock } from 'react-icons/fa';
+import { FaLock, FaUnlock, FaListUl } from 'react-icons/fa';
+import { TbSunHigh, TbMoon } from 'react-icons/tb';
 import { CrossIcon, FilterIcon, ListIcon } from 'evergreen-ui';
 import { useTranslation } from 'react-i18next';
+import { FaFilter } from 'react-icons/fa6';
 import Button from './components/Button';
-
 import ExportModeButton from './components/ExportModeButton';
 
 import { withBlur } from './util';
 import { primaryTextColor, controlsBackground, darkModeTransition } from './colors';
 import useUserSettings from './hooks/useUserSettings';
+import CustomButton from './components/CustomButton';
 
 
 const { stat } = window.require('fs/promises');
@@ -32,6 +34,8 @@ function TopMenu({
   selectedSegments,
   isCustomFormatSelected,
   clearOutDir,
+  toggleDarkMode,
+  darkMode,
 }: {
   filePath: string | undefined,
   fileFormat: string | undefined,
@@ -46,6 +50,8 @@ function TopMenu({
   selectedSegments: unknown[],
   isCustomFormatSelected: boolean,
   clearOutDir: () => void,
+  toggleDarkMode: () => void,
+  darkMode: boolean,
 }) {
   const { t } = useTranslation();
   const { customOutDir, changeOutDir, setCustomOutDir, simpleMode, outFormatLocked, setOutFormatLocked } = useUserSettings();
@@ -79,14 +85,34 @@ function TopMenu({
   return (
     <div
       className="no-user-select"
-      style={{ background: controlsBackground, transition: darkModeTransition, display: 'flex', alignItems: 'center', padding: '3px 5px', justifyContent: 'space-between', flexWrap: 'wrap' }}
+      style={{
+        background: controlsBackground,
+        transition: darkModeTransition,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '5px 10px',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 6,
+        borderBottom: '1px solid var(--gray-8)',
+      }}
     >
       {filePath && (
         <>
-          <Button onClick={withBlur(() => setStreamsSelectorShown(true))}>
+          <CustomButton
+            label={`${t('Tracks')} (${numStreamsToCopy}/${numStreamsTotal})`}
+            icon={FaListUl}
+            onClick={withBlur(() => setStreamsSelectorShown(true))}
+          />
+          <CustomButton
+            icon={FaFilter}
+            onClick={changeEnabledStreamsFilter}
+            label={t('Filter tracks')}
+          />
+          {/* <Button onClick={withBlur(() => setStreamsSelectorShown(true))}>
             <ListIcon size={'1em' as unknown as number} verticalAlign="middle" marginRight=".3em" />
             {t('Tracks')} ({numStreamsToCopy}/{numStreamsTotal})
-          </Button>
+          </Button> */}
 
           {enabledStreamsFilter != null && (
             <FilterIcon
@@ -98,17 +124,16 @@ function TopMenu({
             />
           )}
 
-          <Button
+          {/* <Button
             onClick={changeEnabledStreamsFilter}
           >
             {t('Filter tracks')}
-          </Button>
+          </Button> */}
         </>
       )}
 
-      <div style={{ flexGrow: 1 }} />
-
-      {showClearWorkingDirButton && (
+      <div style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+        {showClearWorkingDirButton && (
         <CrossIcon
           role="button"
           tabIndex={0}
@@ -116,18 +141,18 @@ function TopMenu({
           onClick={withBlur(clearOutDir)}
           title={t('Clear working directory')}
         />
-      )}
+        )}
 
-      <Button
-        ref={workingDirButtonRef}
-        onClick={withBlur(changeOutDir)}
-        title={customOutDir}
-        style={{ paddingLeft: showClearWorkingDirButton ? 4 : undefined }}
-      >
-        {customOutDir ? t('Working dir set') : t('Working dir unset')}
-      </Button>
+        <Button
+          ref={workingDirButtonRef}
+          onClick={withBlur(changeOutDir)}
+          title={customOutDir}
+          style={{ paddingLeft: showClearWorkingDirButton ? 4 : undefined }}
+        >
+          {customOutDir ? t('Working dir set') : t('Working dir unset')}
+        </Button>
 
-      {filePath && (
+        {filePath && (
         <>
           {renderOutFmt(outFmtStyle)}
 
@@ -135,9 +160,21 @@ function TopMenu({
 
           <ExportModeButton selectedSegments={selectedSegments} style={exportModeStyle} />
         </>
-      )}
+        )}
 
-      <IoIosSettings size={24} role="button" onClick={toggleSettings} style={{ marginLeft: 5 }} />
+        <CustomButton
+          icon={darkMode ? TbSunHigh : TbMoon}
+          title={darkMode ? t('Switch to light mode') : t('Switch to dark mode')}
+          onClick={toggleDarkMode}
+          largeIcon
+        />
+        <CustomButton
+          icon={IoIosSettings}
+          onClick={toggleSettings}
+          title={t('Settings')}
+          largeIcon
+        />
+      </div>
     </div>
   );
 }

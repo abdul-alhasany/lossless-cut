@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, MotionStyle } from 'framer-motion';
 import { FaTrashAlt } from 'react-icons/fa';
+import { LuSaveOff } from "react-icons/lu";
 import Color from 'color';
 
 import { mySpring } from './animations';
@@ -121,7 +122,7 @@ function Segment({
     return darkMode ? color.desaturate(0.2).lightness(50).alpha(0.7).string() : color.lightness(35).alpha(0.6).string();
   }, [darkMode, invertCutSegments, isActive, color, selected]);
 
-  const vertBorderRadius = 5;
+  const vertBorderRadius = 4;
 
   const title = useMemo(() => {
     const parts = [
@@ -136,13 +137,15 @@ function Segment({
     const cutSectionWidth = getTimePercent(seg.end - seg.start);
     return {
       position: 'absolute',
-      top: 0,
-      bottom: 0,
+      top: '20%',
+      // bottom: 0,
+      height: '60%',
       left: getTimePercent(seg.start),
       width: cutSectionWidth,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: 4,
       originX: 0,
       boxSizing: 'border-box',
       color: 'white',
@@ -158,6 +161,7 @@ function Segment({
 
       borderTop: border.horizontal,
       borderBottom: border.horizontal,
+      padding: '0 4px',
     };
   }, [getTimePercent, seg.end, seg.start, border]);
 
@@ -173,7 +177,7 @@ function Segment({
       onClick={onClick}
       title={title}
     >
-      <div style={{ alignSelf: 'flex-start', flexShrink: 0, fontSize: 10, minWidth: 0, letterSpacing: '-.1em' }}>{segNum + 1}</div>
+      <div style={{ flexShrink: 0, fontSize: 10, minWidth: 0, letterSpacing: '-.1em' }}>{segNum + 1}</div>
 
       <AnimatePresence>
         {invertCutSegments && (
@@ -183,17 +187,17 @@ function Segment({
             exit={{ scale: 0 }}
             style={{ width: 16, height: 16, flexShrink: 1 }}
           >
-            <FaTrashAlt
-              style={{ width: '100%', color: 'var(--gray-12)' }}
+            <LuSaveOff
+              style={{ width: '100%', color: 'var(--red-12)' }}
               size={16}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {name && <div style={{ flexBasis: 4, flexShrink: 1 }} />}
+      {/* {name && <div style={{ flexBasis: 4, flexShrink: 1 }} />} */}
 
-      {name && <div style={{ flexShrink: 1, fontSize: 11, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>{name}</div>}
+      {name && <div style={{ flexShrink: 1, fontSize: 11, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{name}</div>}
 
       <div style={{ flexGrow: 1 }} />
     </motion.div>

@@ -4,7 +4,8 @@ import i18n from 'i18next';
 import { useTranslation, Trans } from 'react-i18next';
 import { IoIosHelpCircle, IoIosSettings } from 'react-icons/io';
 import type { SweetAlertIcon } from 'sweetalert2';
-
+import { FaInfo } from 'react-icons/fa6';
+import { Select as CustomSelect, SelectItem } from './CustomSelect';
 import ExportButton from './ExportButton';
 import ExportModeButton from './ExportModeButton';
 import FileNameTemplateEditor from './FileNameTemplateEditor';
@@ -27,6 +28,8 @@ import { UseSegments } from '../hooks/useSegments';
 import ExportDialog from './ExportDialog';
 import ToggleExportConfirm from './ToggleExportConfirm';
 import { LossyMode } from '../../../main';
+import { DialogCell, DialogCellDescription, DialogRow, DialogSectionTitle } from './CustomDialog';
+import CustomButton from './CustomButton';
 
 
 const outDirStyle: CSSProperties = { ...highlightedTextStyle, wordBreak: 'break-all', cursor: 'pointer' };
@@ -40,14 +43,19 @@ const rightIconStyle: CSSProperties = { fontSize: '1.2em', verticalAlign: 'middl
 const adjustCutFromValues = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const adjustCutToValues = [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-const HelpIcon = ({ onClick, style }: { onClick: () => void, style?: CSSProperties }) => <IoIosHelpCircle size={20} role="button" onClick={withBlur(onClick)} style={{ cursor: 'pointer', color: primaryTextColor, verticalAlign: 'middle', ...style }} />;
+// const HelpIcon = ({ onClick, style }: { onClick: () => void, style?: CSSProperties }) => <IoIosHelpCircle size={20} role="button" onClick={withBlur(onClick)} style={{ cursor: 'pointer', color: primaryTextColor, verticalAlign: 'middle', ...style }} />;
+const HelpIcon = ({ title }: {style?: CSSProperties, title: string}) => (
+  <CustomButton title={title} icon={FaInfo} color="primary" style={{ borderRadius: '50%', padding: '4px' }} />
+);
 
 function ShiftTimes({ values, num, setNum }: { values: number[], num: number, setNum: (n: number) => void }) {
   const { t } = useTranslation();
   return (
-    <Select value={num} onChange={(e) => setNum(Number(e.target.value))} style={{ height: 20, marginLeft: 5 }}>
-      {values.map((v) => <option key={v} value={v}>{t('{{numFrames}} frames', { numFrames: v >= 0 ? `+${v}` : v, count: v })}</option>)}
-    </Select>
+    <CustomSelect defaultValue={`${num}`} onValueChange={(value) => setNum(parseInt(value, 10))}>
+      {values.map((val) => (
+        <SelectItem key={val} value={String(val)}>{t('{{numFrames}} frames', { numFrames: val >= 0 ? `+${val}` : val, count: val })}</SelectItem>
+      ))}
+    </CustomSelect>
   );
 }
 
@@ -67,6 +75,18 @@ function renderNotice(notice: { warning?: boolean | undefined, text: ReactNode }
     <div style={{ ...(warning ? warningStyle : infoStyle), gap: '0 .5em' }}>
       {renderNoticeIcon({ warning })} {text}
     </div>
+  );
+}
+
+function ExportConfirmFooter({
+  toggleSettings, segmentsToExport, areWeCutting, onExportConfirm,
+}: { toggleSettings: () => void, segmentsToExport: SegmentToExport[], areWeCutting: boolean, onExportConfirm: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <CustomButton color="primary" onClick={toggleSettings} label={t('More Settings')} />
+      <ExportButton segmentsToExport={segmentsToExport} areWeCutting={areWeCutting} onClick={() => onExportConfirm()} size={1.7} />
+    </>
   );
 }
 
@@ -195,6 +215,7 @@ function ExportConfirm({
     separate: t('Export to separate files'),
   })[effectiveExportMode], [effectiveExportMode, t]);
 
+  /*
   const showHelpText = useCallback(({ icon = 'info', timer = 10000, text }: { icon?: SweetAlertIcon, timer?: number, text: string }) => toast.fire({ icon, timer, text }), []);
 
   const onPreserveChaptersPress = useCallback(() => {
@@ -268,6 +289,14 @@ function ExportConfirm({
   const onFfmpegExperimentalHelpPress = useCallback(() => {
     toast.fire({ icon: 'info', timer: 10000, text: t('Enable experimental ffmpeg features flag?') });
   }, [t]);
+ */
+
+  const avoidNegativeTDescription = useMemo(() => ({
+    make_non_negative: t('Shift timestamps to make them non-negative. Also note that this affects only leading negative timestamps, and not non-monotonic negative timestamps.'),
+    make_zero: t('Shift timestamps so that the first timestamp is 0. (LosslessCut default)'),
+    auto: t('Enables shifting when required by the target format.'),
+    disabled: t('Disables shifting of timestamp.'),
+  })[avoidNegativeTs], [avoidNegativeTs, t]);
 
   const canEditSegTemplate = !willMerge || !autoDeleteMergedSegments;
 
@@ -287,22 +316,135 @@ function ExportConfirm({
       visible={visible}
       title={t('Export options')}
       onClosePress={onClosePress}
-      renderButton={() => (
-        <ExportButton segmentsToExport={segmentsToExport} areWeCutting={areWeCutting} onClick={() => onExportConfirm()} size={1.7} />
-      )}
-      renderBottom={() => (
-        <>
-          <ToggleExportConfirm size="1.5em" />
-          <div style={{ fontSize: '.8em', marginLeft: '.4em', marginRight: '.5em', maxWidth: '8.5em', lineHeight: '100%', color: exportConfirmEnabled ? 'var(--gray-12)' : 'var(--gray-11)' }} role="button" onClick={toggleExportConfirmEnabled}>
-            {t('Show this page before exporting?')}
-          </div>
-          {notices.totalNum > 0 && (
-            renderNoticeIcon({ warning: true }, { fontSize: '1.5em', marginRight: '.5em' })
-          )}
-        </>
-      )}
+      footer={ExportConfirmFooter({ toggleSettings, segmentsToExport, areWeCutting, onExportConfirm })}
+      // renderButton={() => (
+      //   <ExportButton segmentsToExport={segmentsToExport} areWeCutting={areWeCutting} onClick={() => onExportConfirm()} size={1.7} />
+      // )}
+      // renderBottom={() => (
+      //   <>
+      //     <ToggleExportConfirm size="1.5em" />
+      //     <div style={{ fontSize: '.8em', marginLeft: '.4em', marginRight: '.5em', maxWidth: '8.5em', lineHeight: '100%', color: exportConfirmEnabled ? 'var(--gray-12)' : 'var(--gray-11)' }} role="button" onClick={toggleExportConfirmEnabled}>
+      //       {t('Show this page before exporting?')}
+      //     </div>
+      //     {notices.totalNum > 0 && (
+      //       renderNoticeIcon({ warning: true }, { fontSize: '1.5em', marginRight: '.5em' })
+      //     )}
+      //   </>
+      // )}
     >
-      <table className={styles['options']}>
+
+      {notices.generic.map(({ warning, text }) => (
+        <tr key={text}>
+          <td colSpan={2}>
+            <div style={{ ...(warning ? { ...noticeStyle, color: 'var(--orange-8)' } : infoStyle), display: 'flex', alignItems: 'center', gap: '0 .5em' }}>
+              {renderNotice({ warning, text })}
+            </div>
+          </td>
+          <td />
+        </tr>
+      ))}
+
+      {segmentsOrInverse.selected.length !== segmentsOrInverse.all.length && (
+      <div style={{ padding: '10px', backgroundColor: 'var(--cyan-3)', borderRadius: 4, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <FaRegCheckCircle style={{ fontSize: 16, marginRight: 3, color: 'var(--cyan-11)' }} />
+        <div>
+          {t('{{selectedSegments}} of {{nonFilteredSegments}} segments selected', { selectedSegments: segmentsOrInverse.selected.length, nonFilteredSegments: segmentsOrInverse.all.length })}
+        </div>
+      </div>
+      )}
+      <DialogSectionTitle>
+        {t('General')}
+      </DialogSectionTitle>
+      <DialogRow>
+        <DialogCell>
+          {segmentsOrInverse.selected.length > 1 ? t('Export mode for {{segments}} segments', { segments: segmentsOrInverse.selected.length }) : t('Export mode')}
+          <DialogCellDescription>
+            {exportModeDescription}
+          </DialogCellDescription>
+        </DialogCell>
+        <DialogCell alignEnd>
+          <ExportModeButton selectedSegments={segmentsOrInverse.selected} />
+        </DialogCell>
+      </DialogRow>
+
+
+      <DialogRow>
+        <DialogCell>
+          {t('Output container format:')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          {renderOutFmt({ height: 20, maxWidth: 150 })}
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Defaults to same format as input file. You can losslessly change the file format (container) of the file with this option. Not all formats support all codecs. Matroska/MP4/MOV support the most common codecs. Sometimes it\'s even impossible to export to the same output format as input.')} />
+        </DialogCell>
+      </DialogRow>
+
+      <DialogRow>
+        <DialogCell>
+          <Trans>Input has {{ numStreamsTotal }} tracks</Trans>
+          <DialogCellDescription color="warning">
+            {notices.specific['problematicStreams']?.text}
+          </DialogCellDescription>
+        </DialogCell>
+        <DialogCell alignEnd>
+          <HighlightedText style={{ cursor: 'pointer' }} onClick={onShowStreamsSelectorClick}><Trans>Keeping {{ numStreamsToCopy }} tracks</Trans></HighlightedText>
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Not all formats support all track types, and LosslessCut is unable to properly cut some track types, so you may have to sacrifice some tracks by disabling them in order to get correct result.')} />
+        </DialogCell>
+      </DialogRow>
+
+      <DialogRow>
+        <DialogCell>
+          {t('Save output to path:')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          <span role="button" onClick={changeOutDir} style={outDirStyle}>{outputDir}</span>
+        </DialogCell>
+      </DialogRow>
+
+      {canEditSegTemplate && (
+      <DialogRow>
+        <DialogCell>
+          <FileNameTemplateEditor template={outSegTemplate} setTemplate={setOutSegTemplate} defaultTemplate={defaultOutSegTemplate} generateFileNames={generateOutSegFileNames} currentSegIndexSafe={currentSegIndexSafe} />
+        </DialogCell>
+        <DialogCell alignEnd>
+          <HelpIcon title={t('You can customize the file name of the output segment(s) using special variables.', { count: segmentsToExport.length })} />
+        </DialogCell>
+      </DialogRow>
+      )}
+
+      {willMerge && (
+      <DialogRow>
+        <DialogCell>
+          Merge
+        </DialogCell>
+        <DialogCell alignEnd>
+          <FileNameTemplateEditor template={mergedFileTemplate} setTemplate={setMergedFileTemplate} defaultTemplate={defaultMergedFileTemplate} generateFileNames={generateMergedFileNames} mergeMode />
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('You can customize the file name of the merged file using special variables.')} />
+        </DialogCell>
+      </DialogRow>
+      )}
+
+      <DialogRow>
+        <DialogCell>
+          {t('Overwrite existing files')}
+          <DialogCellDescription color="warning">
+            {notices.specific['overwriteOutput']?.text}
+          </DialogCellDescription>
+        </DialogCell>
+        <DialogCell alignEnd>
+          <Switch checked={enableOverwriteOutput} onCheckedChange={setEnableOverwriteOutput} />
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Overwrite files when exporting, if a file with the same name as the output file name exists?')} />
+        </DialogCell>
+      </DialogRow>
+
+      {/* <table className={styles['options']}>
         <tbody>
           {notices.generic.map(({ warning, text }) => (
             <tr key={text}>
@@ -407,9 +549,235 @@ function ExportConfirm({
             </td>
           </tr>
         </tbody>
-      </table>
+      </table> */}
 
-      <h3 style={{ marginBottom: '.5em' }}>{t('Advanced options')}</h3>
+      <DialogSectionTitle>
+        {t('Advanced options')}
+      </DialogSectionTitle>
+
+      {areWeCutting && (
+      <>
+        <DialogRow>
+          <DialogCell>
+            {t('Shift all start times')}
+          </DialogCell>
+          <DialogCell alignEnd>
+            <ShiftTimes values={adjustCutFromValues} num={cutFromAdjustmentFrames} setNum={setCutFromAdjustmentFrames} />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('This option allows you to shift all segment start times forward by one or more frames before cutting. This can be useful if the output video starts from the wrong (preceding) keyframe.')} />
+          </DialogCell>
+        </DialogRow>
+
+        <DialogRow>
+          <DialogCell>
+            {t('Shift all end times')}
+          </DialogCell>
+          <DialogCell alignEnd>
+            <ShiftTimes values={adjustCutToValues} num={cutToAdjustmentFrames} setNum={setCutToAdjustmentFrames} />
+          </DialogCell>
+        </DialogRow>
+      </>
+      )}
+
+      {isMov && (
+      <>
+        <DialogRow>
+          <DialogCell htmlFor="move-faststart">
+            {t('Enable MOV Faststart?')}
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={movFastStart} onCheckedChange={toggleMovFastStart} id="move-faststart" />
+            <DialogCellDescription color="warning">
+              {notices.specific['movFastStart']?.text}
+            </DialogCellDescription>
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('Enabling this will allow faster playback of the exported file. This makes processing use 3 times as much export I/O, which is negligible for small files but might slow down exporting of large files.')} />
+          </DialogCell>
+        </DialogRow>
+
+        <DialogRow>
+          <DialogCell htmlFor="preserve-mov-data">
+            {t('Preserve all MP4/MOV metadata?')}
+            <DialogCellDescription color="warning">
+              {notices.specific['preserveMovData']?.text}
+            </DialogCellDescription>
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={preserveMovData} onCheckedChange={togglePreserveMovData} id="preserve-mov-data" />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('Preserve all MOV/MP4 metadata tags (e.g. EXIF, GPS position etc.) from source file? Note that some players have trouble playing back files where all metadata is preserved, like iTunes and other Apple software')} />
+          </DialogCell>
+        </DialogRow>
+      </>
+      )}
+
+      <DialogRow>
+        <DialogCell htmlFor="preserve-chapters">
+          {t('Preserve chapters')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          <Switch checked={preserveChapters} onCheckedChange={togglePreserveChapters} id="preserve-chapters" />
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Whether to preserve chapters from source file.')} />
+        </DialogCell>
+      </DialogRow>
+
+      <DialogRow>
+        <DialogCell>
+          {t('Preserve metadata')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          <CustomSelect value={preserveMetadata} onValueChange={(value) => setPreserveMetadata(value as PreserveMetadata)}>
+            <SelectItem value={'default' as PreserveMetadata}>{t('Default')}</SelectItem>
+            <SelectItem value={'none' satisfies PreserveMetadata}>{t('None')}</SelectItem>
+            <SelectItem value={'nonglobal' satisfies PreserveMetadata}>{t('Non-global')}</SelectItem>
+          </CustomSelect>
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Whether to preserve metadata from source file. Default: Global (file metadata), per-track and per-chapter metadata will be copied. Non-global: Only per-track and per-chapter metadata will be copied. None: No metadata will be copied')} />
+        </DialogCell>
+      </DialogRow>
+
+      {willMerge && (
+      <>
+        <DialogRow>
+          <DialogCell htmlFor="create-chapters-from-segments">
+            {t('Create chapters from merged segments? (slow)')}
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={segmentsToChapters} onCheckedChange={toggleSegmentsToChapters} id="create-chapters-from-segments" />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('When merging, do you want to create chapters in the merged file, according to the cut segments? NOTE: This may dramatically increase processing time')} />
+          </DialogCell>
+        </DialogRow>
+
+        <DialogRow>
+          <DialogCell htmlFor="preserve-metadata-on-merge">
+            {t('Preserve original metadata when merging? (slow)')}
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={preserveMetadataOnMerge} onCheckedChange={togglePreserveMetadataOnMerge} id="preserve-metadata-on-merge" />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('When merging, do you want to preserve metadata from your original file? NOTE: This may dramatically increase processing time')} />
+          </DialogCell>
+        </DialogRow>
+      </>
+      )}
+
+      <DialogRow>
+        <DialogCell style={{ maxWidth: '100%', color: 'var(--blue-11)' }}>
+          {t('Depending on your specific file/player, you may have to try different options for best results.')}
+        </DialogCell>
+      </DialogRow>
+
+      {areWeCutting && (
+      <>
+        <DialogRow>
+          <DialogCell htmlFor="enable-smart-cut">
+            {t('Smart cut (experimental):')}
+            <DialogCellDescription color="warning">
+              {notices.specific['smartCut']?.text}
+            </DialogCellDescription>
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={enableSmartCut} onCheckedChange={() => setEnableSmartCut((v) => !v)} id="enable-smart-cut" />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('This experimental feature will re-encode the part of the video from the cutpoint until the next keyframe in order to attempt to make a 100% accurate cut. Only works on some files. I\'ve had success with some h264 files, and only a few h265 files. See more here: {{url}}', { url: 'https://github.com/mifi/lossless-cut/issues/126' })} />
+          </DialogCell>
+        </DialogRow>
+
+        {!isEncoding && (
+        <DialogRow>
+          <DialogCell htmlFor="keyframe-cut">
+            {t('Keyframe cut mode')}
+            <DialogCellDescription>
+              {notices.specific['cutMode']?.text}
+            </DialogCellDescription>
+          </DialogCell>
+          <DialogCell alignEnd>
+            <Switch checked={keyframeCut} onCheckedChange={() => toggleKeyframeCut()} id="keyframe-cut" />
+          </DialogCell>
+          <DialogCell>
+            <HelpIcon title={t('With "keyframe cut", we will cut at the nearest keyframe before the desired start cutpoint. This is recommended for most files. With "Normal cut" you may have to manually set the cutpoint a few frames before the next keyframe to achieve a precise cut')} />
+          </DialogCell>
+        </DialogRow>
+        )}
+      </>
+      )}
+
+      {isEncoding && (
+      <DialogRow>
+        <DialogCell htmlFor="smart-cut-bitrate">
+          {t('Smart cut auto detect bitrate')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {encBitrate != null && (
+            <>
+              <TextInput value={encBitrate} onChange={handleEncBitrateChange} style={{ width: '4em', flexGrow: 0, marginRight: '.3em' }} />
+              <span style={{ marginRight: '.3em' }}>{t('kbit/s')}</span>
+            </>
+            )}
+            <span><Switch checked={encBitrate == null} onCheckedChange={handleEncBitrateToggle} id="smart-cut-bitrate" /></span>
+          </div>
+        </DialogCell>
+      </DialogRow>
+      )}
+
+      {lossyMode != null && (
+      <DialogRow>
+        <DialogCell htmlFor="lossy-mode">
+          Lossy mode
+        </DialogCell>
+        <DialogCell alignEnd>
+          <Switch disabled checked={lossyMode != null} id="lossy-mode" />
+          <div>{lossyMode.videoEncoder}</div>
+        </DialogCell>
+      </DialogRow>
+      )}
+
+      {!isEncoding && (
+      <DialogRow>
+        <DialogCell>
+          &quot;ffmpeg&quot; <code className="highlighted">avoid_negative_ts</code>
+          <DialogCellDescription>
+            {notices.specific['avoidNegativeTs']?.text}
+          </DialogCellDescription>
+        </DialogCell>
+        <DialogCell alignEnd>
+          <CustomSelect value={avoidNegativeTs} onValueChange={(value) => setAvoidNegativeTs(value as AvoidNegativeTs)}>
+            <SelectItem value={'auto' as AvoidNegativeTs}>auto</SelectItem>
+            <SelectItem value={'make_zero' satisfies AvoidNegativeTs}>make_zero</SelectItem>
+            <SelectItem value={'make_non_negative' satisfies AvoidNegativeTs}>make_non_negative</SelectItem>
+            <SelectItem value={'disabled' satisfies AvoidNegativeTs}>disabled</SelectItem>
+          </CustomSelect>
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={avoidNegativeTDescription} />
+        </DialogCell>
+      </DialogRow>
+      )}
+
+      <DialogRow>
+        <DialogCell htmlFor="ffmpeg-experimental">
+          {t('"ffmpeg" experimental flag')}
+        </DialogCell>
+        <DialogCell alignEnd>
+          <Switch checked={ffmpegExperimental} onCheckedChange={setFfmpegExperimental} id="ffmpeg-experimental" />
+        </DialogCell>
+        <DialogCell>
+          <HelpIcon title={t('Enable experimental ffmpeg features flag?')} />
+        </DialogCell>
+      </DialogRow>
+
+      {/* <h3 style={{ marginBottom: '.5em' }}>{t('Advanced options')}</h3>
 
       <table className={styles['options']}>
         <tbody>
@@ -639,7 +1007,7 @@ function ExportConfirm({
             <td />
           </tr>
         </tbody>
-      </table>
+      </table> */}
     </ExportDialog>
   );
 }

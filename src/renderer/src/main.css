@@ -11,6 +11,8 @@ https://www.radix-ui.com/docs/colors/palette-composition/understanding-the-scale
 @import '@radix-ui/colors/green-dark.css';
 @import '@radix-ui/colors/cyan.css';
 @import '@radix-ui/colors/cyan-dark.css';
+@import '@radix-ui/colors/violet.css';
+@import '@radix-ui/colors/violet-dark.css';
 @import '@radix-ui/colors/blue.css';
 @import '@radix-ui/colors/blue-dark.css';
 @import '@radix-ui/colors/gray.css';
@@ -39,6 +41,10 @@ body {
     -webkit-user-select: none;
     user-select: none;
     cursor: default;
+}
+
+svg, svg * {
+  cursor: inherit !important;
 }
 
 kbd {
@@ -84,11 +90,13 @@ code.highlighted {
 }
 
 .segment-list-entry .selected {
-  display: none;
+  opacity: 0;
+  transition: opacity 150ms;
+  cursor: pointer;
 }
 
 .segment-list-entry:hover .selected {
-  display: inherit;
+  opacity: 1;
 }
 
 .button-unstyled {
@@ -121,7 +129,7 @@ input:focus-visible, select:focus-visible {
   50% { transform: scale(1.15) }
   55% { transform: scale(1.03) }
   100% { transform: scale(1) }
-}  
+}
 
 /* because some people have a hard time finding the button */
 .export-animation {

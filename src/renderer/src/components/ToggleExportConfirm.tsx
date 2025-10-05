@@ -5,6 +5,7 @@ import { MdEventNote } from 'react-icons/md';
 
 import { primaryTextColor } from '../colors';
 import useUserSettings from '../hooks/useUserSettings';
+import CustomButton from './CustomButton';
 
 
 function ToggleExportConfirm({ size = 23, style }: { size?: string | number | undefined, style?: CSSProperties }) {
@@ -12,7 +13,13 @@ function ToggleExportConfirm({ size = 23, style }: { size?: string | number | un
   const { exportConfirmEnabled, toggleExportConfirmEnabled } = useUserSettings();
 
   return (
-    <MdEventNote style={{ color: exportConfirmEnabled ? primaryTextColor : 'var(--gray-11)', ...style, cursor: 'pointer' }} size={size} title={t('Show export options screen before exporting?')} role="button" onClick={toggleExportConfirmEnabled} />
+    // <MdEventNote style={{ color: exportConfirmEnabled ? primaryTextColor : 'var(--gray-11)', ...style, cursor: 'pointer' }} size={size} title={t('Show export options screen before exporting?')} role="button" onClick={toggleExportConfirmEnabled} />
+    <CustomButton
+      icon={MdEventNote}
+      title={t('Show export options screen before exporting?')}
+      onClick={toggleExportConfirmEnabled}
+      toggleable
+    />
   );
 }
 

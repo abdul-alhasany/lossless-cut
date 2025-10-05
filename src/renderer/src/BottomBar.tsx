@@ -3,8 +3,11 @@ import { motion } from 'framer-motion';
 import { MdRotate90DegreesCcw } from 'react-icons/md';
 import { useTranslation } from 'react-i18next';
 import { IoIosCamera, IoMdKey, IoMdSpeedometer } from 'react-icons/io';
-import { FaYinYang, FaTrashAlt, FaStepBackward, FaStepForward, FaCaretLeft, FaCaretRight, FaPause, FaPlay, FaImages, FaKey, FaSun } from 'react-icons/fa';
+import { FaYinYang, FaTrashAlt, FaStepBackward, FaBaby, FaStepForward, FaCaretLeft, FaCaretRight, FaPause, FaPlay, FaImages, FaKey, FaSun, FaFastForward, FaFastBackward } from 'react-icons/fa';
 import { GiSoundWaves } from 'react-icons/gi';
+import { CgPlayList } from 'react-icons/cg';
+import { TbIndentIncrease, TbIndentDecrease } from 'react-icons/tb';
+
 // import useTraceUpdate from 'use-trace-update';
 import invariant from 'tiny-invariant';
 
@@ -27,6 +30,8 @@ import { askForPlaybackRate } from './dialogs';
 import { FormatTimecode, ParseTimecode, SegmentColorIndex, SegmentToExport, StateSegment } from './types';
 import { WaveformMode } from '../../../types';
 import { Frame } from './ffmpeg';
+import CustomButton from './components/CustomButton';
+import { Select as CustomSelect, SelectItem } from './components/CustomSelect';
 
 const { clipboard } = window.require('electron');
 
@@ -49,21 +54,20 @@ const InvertCutModeButton = memo(({ invertCutSegments, setInvertCutSegments }: {
   }, [setInvertCutSegments, t]);
 
   return (
-    <div style={{ marginLeft: 5 }}>
-      <motion.div
-        style={{ width: 24, height: 24 }}
-        animate={{ rotateX: invertCutSegments ? 0 : 180 }}
-        transition={{ duration: 0.3 }}
-      >
-        <FaYinYang
-          size={24}
-          role="button"
-          title={invertCutSegments ? t('Discard selected segments') : t('Keep selected segments')}
-          style={{ color: invertCutSegments ? primaryTextColor : undefined }}
-          onClick={onYinYangClick}
-        />
-      </motion.div>
-    </div>
+    <CustomButton
+      icon={FaYinYang}
+      title={invertCutSegments ? t('Discard selected segments') : t('Keep selected segments')}
+      onClick={onYinYangClick}
+      toggleable
+    />
+  // <FaYinYang
+  //   size={24}
+  //   role="button"
+  //   title={invertCutSegments ? t('Discard selected segments') : t('Keep selected segments')}
+  //   style={{ color: invertCutSegments ? primaryTextColor : undefined }}
+  //   onClick={onYinYangClick}
+  // />
+
   );
 });
 
@@ -185,7 +189,7 @@ const CutTimeInput = memo(({ darkMode, cutTime, setCutTime, startTimeOffset, see
     transition: darkModeTransition,
     fontSize: 13,
     textAlign: 'center',
-    padding: '1px 3px',
+    padding: '4px 6px',
     marginTop: 0,
     marginBottom: 0,
     marginLeft: isStart ? 0 : 5,
@@ -371,39 +375,50 @@ function BottomBar({
   const currentCutSegOrDefault = useMemo(() => currentCutSeg ?? { segColorIndex: 0 }, [currentCutSeg]);
 
   return (
-    <>
+    <div style={{ margin: '4px 10px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', flexBasis: leftRightWidth }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexBasis: leftRightWidth, gap: 5 }}>
           {!simpleMode && (
             <>
-              <FaSun color="var(--gray-12)" role="button" onClick={toggleDarkMode} style={{ padding: '0 .2em 0 .3em' }} title={t('Toggle dark mode')} />
+              {/* <CustomButton
+                icon={FaSun}
+                title={t('Toggle dark mode')}
+                onClick={toggleDarkMode}
+              /> */}
 
               {hasAudio && (
-                <GiSoundWaves
-                  size={24}
-                  style={{ padding: '0 .1em', color: waveformMode != null ? primaryTextColor : undefined }}
-                  role="button"
+                <CustomButton
+                  icon={GiSoundWaves}
                   title={t('Show waveform')}
                   onClick={() => toggleWaveformMode()}
                 />
               )}
               {hasVideo && (
                 <>
-                  <FaImages
+                  <CustomButton
+                    icon={FaImages}
+                    title={t('Show thumbnails')}
+                    onClick={toggleShowThumbnails}
+                  />
+                  {/* <FaImages
                     size={20}
                     style={{ padding: '0 .2em', color: showThumbnails ? primaryTextColor : undefined }}
                     role="button"
                     title={t('Show thumbnails')}
                     onClick={toggleShowThumbnails}
+                  /> */}
+                  <CustomButton
+                    icon={FaKey}
+                    title={t('Show keyframes')}
+                    onClick={toggleShowKeyframes}
                   />
-
-                  <FaKey
+                  {/* <FaKey
                     size={16}
                     style={{ padding: '0 .2em', color: keyframesEnabled ? primaryTextColor : undefined }}
                     role="button"
                     title={t('Show keyframes')}
                     onClick={toggleShowKeyframes}
-                  />
+                  /> */}
                 </>
               )}
             </>
@@ -411,90 +426,119 @@ function BottomBar({
         </div>
 
         <div style={{ flexGrow: 1 }} />
-
-        {!simpleMode && (
+        <div style={{ display: 'flex', alignItems: 'center', flexBasis: leftRightWidth, gap: 5 }}>
+          {!simpleMode && (
           <>
-            <FaStepBackward
-              size={16}
-              style={{ flexShrink: 0 }}
+            <CustomButton
+              icon={FaFastBackward}
               title={t('Jump to start of video')}
-              role="button"
               onClick={jumpTimelineStart}
+              keyboardAction="jumpTimelineStart"
             />
 
             {renderJumpCutpointButton(-1)}
-
-            <SegmentCutpointButton currentCutSeg={currentCutSeg} side="start" Icon={FaStepBackward} onClick={jumpCutStart} title={t('Jump to current segment\'s start time')} style={{ marginRight: 5 }} />
+            <CustomButton icon={FaStepBackward} onClick={jumpCutStart} title={t('Jump to current segment\'s start time')} keyboardAction="jumpCutStart" />
           </>
-        )}
+          )}
 
-        <SetCutpointButton currentCutSeg={currentCutSegOrDefault} side="start" onClick={setCutStart} title={t('Start current segment at current time')} style={{ marginRight: 5 }} />
+          <SetCutpointButton currentCutSeg={currentCutSegOrDefault} side="start" onClick={setCutStart} title={t('Start current segment at current time')} keyboardAction="setCutStart" />
 
-        {!simpleMode && <CutTimeInput darkMode={darkMode} currentCutSeg={currentCutSeg} startTimeOffset={startTimeOffset} seekAbs={seekAbs} cutTime={currentCutSeg?.start} setCutTime={setCutTime} isStart formatTimecode={formatTimecode} parseTimecode={parseTimecode} />}
+          {!simpleMode && <CutTimeInput darkMode={darkMode} currentCutSeg={currentCutSeg} startTimeOffset={startTimeOffset} seekAbs={seekAbs} cutTime={currentCutSeg?.start} setCutTime={setCutTime} isStart formatTimecode={formatTimecode} parseTimecode={parseTimecode} />}
 
-        <IoMdKey
-          size={25}
-          role="button"
-          title={t('Seek previous keyframe')}
-          style={{ flexShrink: 0, marginRight: 2, transform: mirrorTransform, ...keyframeStyle }}
-          onClick={() => seekClosestKeyframe(-1)}
-        />
-
-        {!simpleMode && (
-          <FaCaretLeft
-            style={{ flexShrink: 0, marginLeft: -6, marginRight: -4 }}
-            size={28}
-            role="button"
-            title={t('One frame back')}
-            onClick={() => shortStep(-1)}
+          <CustomButton
+            icon={TbIndentDecrease}
+            title={t('Seek previous keyframe')}
+            onClick={() => seekClosestKeyframe(-1)}
+            largeIcon
           />
-        )}
-
-        <div role="button" onClick={() => togglePlay()} style={{ background: primaryColor, margin: '2px 5px 0 5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 17, color: 'white' }}>
-          <PlayPause
-            style={{ paddingLeft: playing ? 0 : 2 }}
-            size={16}
-          />
-        </div>
-
-        {!simpleMode && (
-          <FaCaretRight
-            style={{ flexShrink: 0, marginRight: -6, marginLeft: -4 }}
-            size={28}
+          {/* <IoMdKey
+            size={25}
             role="button"
+            title={t('Seek previous keyframe')}
+            style={{ flexShrink: 0, marginRight: 2, transform: mirrorTransform, ...keyframeStyle }}
+            onClick={() => seekClosestKeyframe(-1)}
+          /> */}
+
+          {!simpleMode && (
+            <CustomButton
+              icon={FaCaretLeft}
+              title={t('One frame back')}
+              onClick={() => shortStep(-1)}
+              largeIcon
+              keyboardAction="seekPreviousFrame"
+            />
+          // <FaCaretLeft
+          //   style={{ flexShrink: 0, marginLeft: -6, marginRight: -4 }}
+          //   size={28}
+          //   role="button"
+          //   title={t('One frame back')}
+          //   onClick={() => shortStep(-1)}
+          // />
+          )}
+
+          <CustomButton
+            icon={PlayPause}
+            onClick={() => togglePlay()}
+            title={playing ? t('Pause') : t('Play')}
+            largeIcon
+            style={{ width: 34, height: 34, borderRadius: 17 }}
+          />
+          {/* <div role="button" onClick={() => togglePlay()} style={{ background: primaryColor, margin: '2px 5px 0 5px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 17, color: 'white' }}>
+            <PlayPause
+              size={16}
+            />
+          </div> */}
+
+          {!simpleMode && (
+          <CustomButton
+            icon={FaCaretRight}
             title={t('One frame forward')}
             onClick={() => shortStep(1)}
+            largeIcon
+            keyboardAction="seekNextFrame"
           />
-        )}
+          // <FaCaretRight
+          //   style={{ flexShrink: 0, marginRight: -6, marginLeft: -4 }}
+          //   size={28}
+          //   role="button"
+          //   title={t('One frame forward')}
+          //   onClick={() => shortStep(1)}
+          // />
+          )}
+          <CustomButton
+            icon={TbIndentIncrease}
+            title={t('Seek next keyframe')}
+            onClick={() => seekClosestKeyframe(1)}
+            largeIcon
+          />
+          {/* <IoMdKey
+            style={{ flexShrink: 0, marginLeft: 2, ...keyframeStyle }}
+            size={25}
+            role="button"
+            title={t('Seek next keyframe')}
+            onClick={() => seekClosestKeyframe(1)}
+          /> */}
 
-        <IoMdKey
-          style={{ flexShrink: 0, marginLeft: 2, ...keyframeStyle }}
-          size={25}
-          role="button"
-          title={t('Seek next keyframe')}
-          onClick={() => seekClosestKeyframe(1)}
-        />
+          {!simpleMode && <CutTimeInput darkMode={darkMode} currentCutSeg={currentCutSeg} startTimeOffset={startTimeOffset} seekAbs={seekAbs} cutTime={currentCutSeg?.end} setCutTime={setCutTime} formatTimecode={formatTimecode} parseTimecode={parseTimecode} />}
 
-        {!simpleMode && <CutTimeInput darkMode={darkMode} currentCutSeg={currentCutSeg} startTimeOffset={startTimeOffset} seekAbs={seekAbs} cutTime={currentCutSeg?.end} setCutTime={setCutTime} formatTimecode={formatTimecode} parseTimecode={parseTimecode} />}
+          <SetCutpointButton currentCutSeg={currentCutSeg} side="end" onClick={setCutEnd} title={t('End current segment at current time')} keyboardAction="setCutEnd" />
 
-        <SetCutpointButton currentCutSeg={currentCutSeg} side="end" onClick={setCutEnd} title={t('End current segment at current time')} style={{ marginLeft: 5 }} />
-
-        {!simpleMode && (
+          {!simpleMode && (
           <>
-            <SegmentCutpointButton currentCutSeg={currentCutSeg} side="end" Icon={FaStepForward} onClick={jumpCutEnd} title={t('Jump to current segment\'s end time')} style={{ marginLeft: 5 }} />
+            <CustomButton onClick={jumpCutEnd} title={t('Jump to current segment\'s end time')} icon={FaStepForward} keyboardAction="jumpCutEnd" />
+            {/* <SegmentCutpointButton currentCutSeg={currentCutSeg} side="end" Icon={FaStepForward} onClick={jumpCutEnd} title={t('Jump to current segment\'s end time')} /> */}
 
             {renderJumpCutpointButton(1)}
 
-            <FaStepForward
-              size={16}
-              style={{ flexShrink: 0 }}
+            <CustomButton
+              icon={FaFastForward}
               title={t('Jump to end of video')}
-              role="button"
               onClick={jumpTimelineEnd}
+              keyboardAction="jumpTimelineEnd"
             />
           </>
-        )}
-
+          )}
+        </div>
         <div style={{ flexGrow: 1 }} />
 
         <div style={{ flexBasis: leftRightWidth }} />
@@ -502,24 +546,33 @@ function BottomBar({
 
       <div
         className="no-user-select"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 4px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 5 }}
       >
-        <SimpleModeButton style={{ flexShrink: 0 }} />
+        <CustomButton
+          icon={FaBaby}
+          title={t('Toggle advanced view')}
+          onClick={toggleSimpleMode}
+        />
 
-        {simpleMode && <div role="button" onClick={toggleSimpleMode} style={{ marginLeft: 5, fontSize: '90%' }}>{t('Toggle advanced view')}</div>}
+        {/* {simpleMode && <div role="button" onClick={toggleSimpleMode} style={{ marginLeft: 5, fontSize: '90%' }}>{t('Toggle advanced view')}</div>} */}
 
         {!simpleMode && (
           <>
             <InvertCutModeButton invertCutSegments={invertCutSegments} setInvertCutSegments={setInvertCutSegments} />
 
             <div role="button" style={{ marginRight: 5, marginLeft: 10 }} title={t('Zoom')} onClick={timelineToggleComfortZoom}>{Math.floor(zoom)}x</div>
+            <CustomSelect defaultValue={`${zoom}`} onValueChange={(value) => setZoom(() => parseInt(value, 10))} placeholder="Zoom" label="Zoom">
+              {zoomOptions.map((val) => (
+                <SelectItem key={val} value={String(val)}>{t('Zoom')} {val}x</SelectItem>
+              ))}
+            </CustomSelect>
 
-            <Select style={{ height: 20, flexBasis: 85, flexGrow: 0 }} value={zoomOptions.includes(zoom) ? zoom.toString() : ''} title={t('Zoom')} onChange={withBlur((e) => setZoom(() => parseInt(e.target.value, 10)))}>
+            {/* <Select style={{ height: 20, flexBasis: 85, flexGrow: 0 }} value={zoomOptions.includes(zoom) ? zoom.toString() : ''} title={t('Zoom')} onChange={withBlur((e) => setZoom(() => parseInt(e.target.value, 10)))}>
               <option key="" value="" disabled>{t('Zoom')}</option>
               {zoomOptions.map((val) => (
                 <option key={val} value={String(val)}>{t('Zoom')} {val}x</option>
               ))}
-            </Select>
+            </Select> */}
 
             {detectedFps != null && (
               <div title={t('Video FPS')} role="button" onClick={handleChangePlaybackRateClick} style={{ color: 'var(--gray-11)', fontSize: '.7em', marginLeft: 6 }}>{(detectedFps * outputPlaybackRate).toFixed(3)}</div>
@@ -531,55 +584,64 @@ function BottomBar({
           </>
         )}
 
-        <div style={{ flexGrow: 1 }} />
-
-        {hasVideo && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginLeft: 'auto' }}>
+          {hasVideo && (
           <>
-            <span style={{ textAlign: 'right', display: 'inline-block' }}>{isRotationSet && rotationStr}</span>
+            <CustomButton
+              icon={MdRotate90DegreesCcw}
+              title={`${t('Set output rotation. Current: ')} ${isRotationSet ? rotationStr : t('Don\'t modify')}`}
+              onClick={increaseRotation}
+              label={isRotationSet ? rotationStr : ''}
+            />
+            {/* <span style={{ textAlign: 'right', display: 'inline-block' }}>{isRotationSet && rotationStr}</span>
             <MdRotate90DegreesCcw
               size={24}
               style={{ margin: '0px 0px 0 2px', verticalAlign: 'middle', color: isRotationSet ? primaryTextColor : undefined }}
               title={`${t('Set output rotation. Current: ')} ${isRotationSet ? rotationStr : t('Don\'t modify')}`}
               onClick={increaseRotation}
               role="button"
-            />
+            /> */}
           </>
-        )}
+          )}
 
-        {!simpleMode && isFileOpened && (
-          <FaTrashAlt
+          {!simpleMode && isFileOpened && (
+          <CustomButton
+            icon={FaTrashAlt}
             title={t('Close file and clean up')}
-            style={{ padding: '5px 10px' }}
-            size={16}
             onClick={cleanupFilesDialog}
-            role="button"
           />
-        )}
+          )}
 
-        {hasVideo && (
+          {hasVideo && (
           <>
-            {!simpleMode && <CaptureFormatButton style={{ width: '3.7em', textAlign: 'center' }} />}
-
-            <IoIosCamera
-              style={{ paddingLeft: 5, paddingRight: 15 }}
-              size={25}
+            {!simpleMode && <CaptureFormatButton />}
+            <CustomButton
+              icon={IoIosCamera}
               title={t('Capture frame')}
               onClick={captureSnapshot}
+              largeIcon
             />
           </>
-        )}
+          )}
 
-        <div role="button" onClick={toggleLoopSelectedSegments} title={t('Play selected segments in order')} style={loopSelectedSegmentsButtonStyle}>
+          <CustomButton
+            icon={CgPlayList}
+            onClick={toggleLoopSelectedSegments}
+            title={t('Play selected segments in order')}
+            largeIcon
+          />
+          {/* <div role="button" onClick={toggleLoopSelectedSegments} title={t('Play selected segments in order')} style={loopSelectedSegmentsButtonStyle}>
           <FaPlay
             size={14}
           />
+        </div> */}
+
+          {(!simpleMode || !exportConfirmEnabled) && <ToggleExportConfirm />}
+
+          <ExportButton size={1.3} segmentsToExport={segmentsToExport} areWeCutting={areWeCutting} onClick={onExportPress} />
         </div>
-
-        {(!simpleMode || !exportConfirmEnabled) && <ToggleExportConfirm style={{ marginRight: 5 }} />}
-
-        <ExportButton size={1.3} segmentsToExport={segmentsToExport} areWeCutting={areWeCutting} onClick={onExportPress} />
       </div>
-    </>
+    </div>
   );
 }
 

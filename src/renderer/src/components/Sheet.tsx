@@ -16,13 +16,13 @@ function Sheet({ visible, onClosePress, children, maxWidth = 800, style }: {
     <AnimatePresence>
       {visible && (
         <motion.div
-          initial={{ scale: 0, opacity: 0.5 }}
+          initial={{ scale: 0.8, opacity: 0.5 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0, opacity: 0 }}
+          exit={{ scale: 1, opacity: 0 }}
           className={styles['sheet']}
         >
-          <div style={{ margin: 'auto', maxWidth, height: '100%', position: 'relative' }}>
-            <div style={{ overflowY: 'scroll', height: '100%', ...style }}>
+          <div style={{ margin: 'auto', maxWidth, height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ overflowY: 'scroll', height: '80%', ...style }}>
               {children}
             </div>
 

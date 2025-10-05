@@ -1,12 +1,7 @@
 .wrapper {
   display: flex;
-  margin: 0 .3em;
-  padding: .5em;
   border-radius: .3em;
-  color: var(--gray-12);
-  background: var(--white-a8);
-  box-shadow: 0 0 .3em .3em var(--white-a5);
-  backdrop-filter: blur(7px);
+  gap: .5em;
 }
 
 :global(.dark-theme) .wrapper {

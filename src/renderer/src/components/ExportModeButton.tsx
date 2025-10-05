@@ -5,7 +5,7 @@ import { withBlur } from '../util';
 import useUserSettings from '../hooks/useUserSettings';
 import Select from './Select';
 import { ExportMode } from '../types';
-
+import { Select as CustomSelect, SelectItem } from './CustomSelect';
 
 function ExportModeButton({ selectedSegments, style }: { selectedSegments: unknown[], style?: CSSProperties }) {
   const { t } = useTranslation();
@@ -51,12 +51,8 @@ function ExportModeButton({ selectedSegments, style }: { selectedSegments: unkno
 
   return (
     // eslint-disable-next-line react/jsx-props-no-spreading
-    <Select
-      style={{ height: 20, ...style }}
-      value={effectiveExportMode}
-      onChange={withBlur((e) => onChange(e.target.value as ExportMode))}
-    >
-      <option key="disabled" value="" disabled>{t('Export mode')}</option>
+    <CustomSelect defaultValue={effectiveExportMode} onValueChange={(value) => onChange(value as ExportMode)} label={t('Export mode')}>
+      {/* <option key="disabled" value="" disabled>{t('Export mode')}</option> */}
 
       {selectableModes.map((mode) => {
         const titles = {
@@ -70,10 +66,10 @@ function ExportModeButton({ selectedSegments, style }: { selectedSegments: unkno
         const title = titles[mode];
 
         return (
-          <option key={mode} value={mode}>{title}</option>
+          <SelectItem key={mode} value={mode}>{title}</SelectItem>
         );
       })}
-    </Select>
+    </CustomSelect>
   );
 }
 

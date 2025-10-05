@@ -1,0 +1,75 @@
+.Content {
+	border-radius: 4px;
+	padding: 5px 10px;
+	font-size: 13px;
+	color: var(--gray-12);
+	background-color: var(--gray-1);
+	box-shadow:	 0 0 10px 1px var(--gray-6);
+	user-select: none;
+	animation-duration: 400ms;
+	animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+	will-change: transform, opacity;
+	max-width: 250px;
+	z-index: 1000;
+	&[data-state="delayed-open"][data-side="top"] {
+		animation-name: slideDownAndFade;
+	}
+	&[data-state="delayed-open"][data-side="right"] {
+		animation-name: slideLeftAndFade;
+	}
+	&[data-state="delayed-open"][data-side="bottom"] {
+		animation-name: slideUpAndFade;
+	}
+	&[data-state="delayed-open"][data-side="left"] {
+		animation-name: slideRightAndFade;
+	}
+}
+
+.Arrow {
+	fill: var(--gray-1);
+}
+
+
+@keyframes slideUpAndFade {
+	from {
+		opacity: 0;
+		transform: translateY(2px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes slideRightAndFade {
+	from {
+		opacity: 0;
+		transform: translateX(-2px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slideDownAndFade {
+	from {
+		opacity: 0;
+		transform: translateY(-2px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes slideLeftAndFade {
+	from {
+		opacity: 0;
+		transform: translateX(2px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}

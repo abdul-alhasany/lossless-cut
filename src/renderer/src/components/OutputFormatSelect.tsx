@@ -1,6 +1,6 @@
 import { CSSProperties, memo, useMemo } from 'react';
 import i18n from 'i18next';
-
+import { Select as CustomSelect, SelectItem } from './CustomSelect';
 import allOutFormats from '../outFormats';
 import { withBlur } from '../util';
 import Select from './Select';
@@ -11,7 +11,7 @@ const commonSubtitleFormats = ['ass', 'srt', 'sup', 'webvtt'];
 
 function renderFormatOptions(formats: string[]) {
   return formats.map((format) => (
-    <option key={format} value={format}>{format} - {(allOutFormats as Record<string, string>)[format]}</option>
+    <SelectItem key={format} value={format}>{format} - {(allOutFormats as Record<string, string>)[format]}</SelectItem>
   ));
 }
 
@@ -27,27 +27,27 @@ function OutputFormatSelect({ style, detectedFileFormat, fileFormat, onOutputFor
 
   return (
     // eslint-disable-next-line react/jsx-props-no-spreading
-    <Select style={style} value={fileFormat || ''} title={i18n.t('Output container format:')} onChange={withBlur((e) => onOutputFormatUserChange(e.target.value))}>
-      <option key="disabled1" value="" disabled>{i18n.t('Output container format:')}</option>
+    <CustomSelect style={style} value={fileFormat || ''} label={i18n.t('Output container format:')} onChange={(value) => onOutputFormatUserChange(value)}>
+      {/* <option key="disabled1" value="" disabled>{i18n.t('Output container format:')}</option> */}
 
       {detectedFileFormat && (
-        <option key={detectedFileFormat} value={detectedFileFormat}>
+        <SelectItem key={detectedFileFormat} value={detectedFileFormat}>
           {detectedFileFormat} - {(allOutFormats as Record<string, string>)[detectedFileFormat]} {i18n.t('(detected)')}
-        </option>
+        </SelectItem>
       )}
 
-      <option key="disabled2" value="" disabled>--- {i18n.t('Common video/audio formats:')} ---</option>
+      <SelectItem key="disabled2" value="disabled2" disabled>--- {i18n.t('Common video/audio formats:')} ---</SelectItem>
       {renderFormatOptions(commonVideoAudioFormatsExceptDetectedFormat)}
 
-      <option key="disabled3" value="" disabled>--- {i18n.t('Common audio formats:')} ---</option>
+      <SelectItem key="disabled3" value="disabled3" disabled>--- {i18n.t('Common audio formats:')} ---</SelectItem>
       {renderFormatOptions(commonAudioFormatsExceptDetectedFormat)}
 
-      <option key="disabled4" value="" disabled>--- {i18n.t('Common subtitle formats:')} ---</option>
+      <SelectItem key="disabled4" value="disabled4" disabled>--- {i18n.t('Common subtitle formats:')} ---</SelectItem>
       {renderFormatOptions(commonSubtitleFormatsExceptDetectedFormat)}
 
-      <option key="disabled5" value="" disabled>--- {i18n.t('All other formats:')} ---</option>
+      <SelectItem key="disabled5" value="disabled5" disabled>--- {i18n.t('All other formats:')} ---</SelectItem>
       {renderFormatOptions(otherFormats)}
-    </Select>
+    </CustomSelect>
   );
 }
 

@@ -1,0 +1,119 @@
+.Toggle[data-toggled="on"].button {
+  background-color: var(--violet-10);
+
+  &:hover {
+    background-color: var(--violet-9);
+  }
+
+  &[data-color="mute"] {
+    background-color: var(--gray-10);
+    color: var(--gray-1);
+
+    &:hover {
+      background-color: var(--gray-9);
+    }
+  }
+}
+
+.button {
+  appearance: none;
+  font: inherit;
+  border-radius: 4px;
+  padding: 5px 12px;
+  border: 0em solid transparent;
+  cursor: pointer;
+  outline-offset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background-color 0.1s ease-in-out;
+  font-size: 0.8em;
+
+  &[data-color="primary"] {
+    background-color: var(--cyan-11);
+    color: var(--cyan-1);
+
+    &:hover {
+      background-color: var(--cyan-10);
+    }
+  }
+
+  &[data-color="secondary"] {
+    background-color: var(--violet-11);
+    color: var(--violet-1);
+
+    &:hover {
+      background-color: var(--violet-9);
+    }
+  }
+
+  &[data-color="success"] {
+    background-color: var(--green-4);
+    color: var(--green-11);
+  }
+
+  &[data-color="warning"] {
+    background-color: var(--orange-9);
+    color: var(--orange-1);
+
+    &:hover {
+      background-color: var(--orange-10);
+    }
+  }
+
+  &[data-color="mute"] {
+    background-color: var(--gray-4);
+    color: var(--gray-11);
+
+    &:hover {
+      background-color: var(--gray-5);
+      color: var(--gray-12);
+    }
+  }
+
+  &[data-color="danger"] {
+    background-color: var(--red-9);
+    color: var(--red-1);
+
+    &:hover {
+      background-color: var(--red-10);
+    }
+  }
+
+
+}
+
+.button.icon-only {
+  padding: 7px;
+}
+
+.button.icon-only.large {
+  padding: 5px;
+}
+
+.button.icon-only.large .icon {
+  font-size: 1.3em;
+}
+
+.button:not(:disabled),
+.button:not(:disabled) * {
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: .7;
+  cursor: not-allowed;
+}
+
+.button:focus {
+  outline: 0em solid var(--gray-11);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1em;
+  pointer-events: none;
+}
